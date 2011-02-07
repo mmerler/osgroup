@@ -1,0 +1,10 @@
+1) Group repository for OS : git@github.com:mmerler/OS.git 
+
+2) At the beginning of each session, type 
+
+export SSH_AUTH_SOCK=0
+
+3) When you are asked for the passphrase for key '/home/mmerler/.ssh/id_rsa', type:
+
+giambo
+
