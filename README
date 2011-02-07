@@ -4,7 +4,5 @@
 
 export SSH_AUTH_SOCK=0
 
-3) When you are asked for the passphrase for key '/home/mmerler/.ssh/id_rsa', type:
 
-giambo
 
