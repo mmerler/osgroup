@@ -98,6 +98,10 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+extern int sys_startrecording(void);
+extern int sys_stoprecording(void);
+extern int sys_fetchrecords(void);
+
 
 static int (*syscalls[])(void) = {
 [SYS_chdir]   sys_chdir,
@@ -121,6 +125,9 @@ static int (*syscalls[])(void) = {
 [SYS_wait]    sys_wait,
 [SYS_write]   sys_write,
 [SYS_uptime]  sys_uptime,
+[SYS_startrecording]  sys_startrecording,
+[SYS_stoprecording] sys_stoprecording, 
+[SYS_fetchrecords] sys_fetchrecords, 
 };
 
 void

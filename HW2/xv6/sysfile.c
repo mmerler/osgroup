@@ -8,6 +8,8 @@
 #include "file.h"
 #include "fcntl.h"
 
+
+
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
 static int
@@ -389,3 +391,38 @@ sys_pipe(void)
   fd[1] = fd1;
   return 0;
 }
+
+
+// Puts process in recording mode
+int sys_startrecording( void )
+{
+  cprintf("Hello \n");
+  
+  if ( proc->mode != RECORDING ) { 
+    proc->mode = RECORDING;
+    return 0;
+  } 
+
+  return -1;
+}
+
+// puts process in normal mode 
+int sys_stoprecording( void )
+{
+    if ( proc->mode != NORMAL ) { 
+      proc->mode = NORMAL;
+      return 0;
+    } 
+
+    return -1;
+
+}
+
+// retrieves system call records of the current process
+int sys_fetchrecords( void )
+{
+  
+  return -1;
+
+}
+
