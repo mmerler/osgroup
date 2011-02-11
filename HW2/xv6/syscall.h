@@ -20,3 +20,6 @@
 #define SYS_sbrk   19
 #define SYS_sleep  20
 #define SYS_uptime 21
+#define SYS_startrecording 22
+#define SYS_stoprecording 23
+#define SYS_fetchrecords 24

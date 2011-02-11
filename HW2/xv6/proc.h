@@ -59,6 +59,12 @@ enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 enum procmode { NORMAL, RECORDING };
 
+struct record_node { 
+  struct record *rec; 
+  struct record_node *next;
+};
+
+
 // Per-process state
 struct proc {
   uint sz;                     // Size of process memory (bytes)
@@ -74,6 +80,9 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  enum procmode mode;          // Process mode for recording syscalls
+  struct record_node *recordhead;   // head of linked list of syscall records
+  struct record_node *recordtail; // tail of linked list of syscall records
 };
 
 // Process memory is laid out contiguously, low addresses first:

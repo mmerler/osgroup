@@ -1,4 +1,5 @@
 struct stat;
+struct record;
 
 // system calls
 int fork(void);
@@ -22,6 +23,10 @@ int getpid();
 char* sbrk(int);
 int sleep(int);
 int uptime();
+int startrecording(void);
+int stoprecording(void);
+int fetchrecords(struct record *records, int num_records);
+
 
 // ulib.c
 int stat(char*, struct stat*);
