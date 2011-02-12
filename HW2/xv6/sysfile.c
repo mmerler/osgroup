@@ -7,6 +7,7 @@
 #include "fs.h"
 #include "file.h"
 #include "fcntl.h"
+#include "record.h"
 
 
 
@@ -421,8 +422,38 @@ int sys_stoprecording( void )
 // retrieves system call records of the current process
 int sys_fetchrecords( void )
 {
-  
-  return -1;
+	//count the number of records stored in the linked list.
+	int numRecords = 0;
+	struct record_node *currentNode = proc->recordhead;
+	while (proc->recordhead != 0)
+	{
+		numRecords++;
+		if (currentNode == proc->recordtail) break;
+		currentNode = currentNode->next;
+	}
+
+	char **getArray = 0;
+	if (  argptr(0, getArray, sizeof (struct record))  < 0) return -1;
+	long arrayAddress = (long) getArray;
+	struct record *array = (struct record *) arrayAddress;
+	
+	//if the first argument is null, return the number of records stored.
+	if (array == 0) return numRecords;
+	
+	//otherwise, copy records into array
+	int *arraySize = 0;
+	if (argint(1, arraySize) < 0) return -1;
+
+	int i;
+	currentNode = proc->recordhead;
+	for (i = 0; i < numRecords && i < *arraySize; i++)
+	{
+		array[i] = *currentNode->rec;
+		
+		currentNode = currentNode->next;		
+	}
+
+  	return 0;
 
 }
 

@@ -80,6 +80,8 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  //These fields were added for HW2
   enum procmode mode;          // Process mode for recording syscalls
   struct record_node *recordhead;   // head of linked list of syscall records
   struct record_node *recordtail; // tail of linked list of syscall records
