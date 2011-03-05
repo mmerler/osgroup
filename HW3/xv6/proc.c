@@ -7,6 +7,9 @@
 #include "rwlock.h"
 #include "proc.h"
 
+#include "stat.h"
+
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -244,26 +247,19 @@ int tfork( void (*entry)(void *), void *arg, void *spbottom )
   struct proc *np;
  // void* entry = 0;
  // void* arg = 0;
- // uint* spbottom = 0;
+  //uint* spbottom = 0;
 
-  if ((getuserbuf(1, entry, sizeof(void*))) == -1) {
-      return -1;}
-
-  if ((getuserbuf(1, arg, sizeof(void*)))== -1) {
-    return -1;}
-
-  if ((getuserbuf(1, (uint)spbottom, sizeof(void*)))==-1) {
-    return -1;}
-
+  printf( "spbottom : %d\n", *(uint *) spbottom );
+  printf( "arg : %d\n", *(uint *) arg );
   // Allocate process.
   if((np = allocproc()) == 0)
     return -1;
 
   np->common = &proc->threadcommon;
 
-  *spbottom = (uint)arg;
+  *(uint *)spbottom = (uint) arg;
   spbottom -= 4;
-  *spbottom = 0xffffffff;
+  *(uint *)spbottom = 0xffffffff;
   spbottom -= 4;
 
 
