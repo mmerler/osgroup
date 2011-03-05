@@ -60,15 +60,23 @@ readunlock(struct rwlock *m)
 void
 writelock(struct rwlock *m)
 {
-	acquire (m->guard); // This will stop new readers from entering critical section
-	acquire (m->lock); // Wait for all readers already in critical section to leave
+	acquire (m->mutex2);
+		++ m->writecount;
+		if (writecount == 1)
+			then  P(r);
+	release (m->mutex2);
+	acquire (m->w);
 }
 
 void
 writeunlock(struct rwlock *m)
 {
-	release (m->lock);
-	release (m->guard);
+	release (m->w);
+	acquire (m->mutex2);
+		-- writecount;
+		if (writecount == 0)
+			release (m->r);
+	release (m->mutex2);
 }
 
 int
