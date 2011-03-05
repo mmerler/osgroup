@@ -15,8 +15,8 @@ initrwlock(struct rwlock *m)
 {
 	m->nreader = 0;
 	
-	struct spinlock *guard = kalloc (sizeof (struct spinlock));
-	struct spinlock *lock = kalloc (sizeof (struct spinlock));
+	struct spinlock *guard = (struct spinlock *) kalloc ();
+	struct spinlock *lock = (struct spinlock *) kalloc ();
 
 	initlock (guard, "guard");
 	initlock (lock, "guard");
@@ -36,7 +36,11 @@ destroyrwlock(struct rwlock *m)
 void
 readlock(struct rwlock *m)
 {
-	
+	acquire (m->guard);
+	++ m->nreader;
+	if(m->nreader == 1) // first reader 
+		acquire(m->lock); 
+	release(m->guard);
 }
 
 void
