@@ -8,10 +8,10 @@
 #include "proc.h"
 
 int
-sys_tfork(void)
+sys_tfork(void (*entry)(void *), void *arg, void *spbottom)
 {
   // HW3 TODO
-  return tfork();
+  return tfork( entry, arg, spbottom);
 }
 
 int
@@ -22,7 +22,7 @@ sys_texit(void)
 }
 
 int
-sys_twait(void)
+sys_twait(int tid)
 {
   // HW3 TODO
   return 0;
