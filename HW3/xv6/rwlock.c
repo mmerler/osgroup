@@ -36,35 +36,47 @@ destroyrwlock(struct rwlock *m)
 void
 readlock(struct rwlock *m)
 {
-	acquire (m->guard);
-	++ m->nreader;
-	if(m->nreader == 1) // first reader 
-		acquire(m->lock); 
-	release(m->guard);
+	acquire (m->mutex3);
+		acquire (m->r);
+			acquire(m->mutex1);
+				++ m->nreader;
+				if(m->nreader == 1) 
+					acquire(m->w);
+			release(m->mutex1);
+		release (m->r);
+	release (m->mutex3);
 }
 
 void
 readunlock(struct rwlock *m)
 {
-	acquire(m->guard);
-	-- m->nreader;
-	if(m->nreader == 0) // last reader 
-		release(m->lock);
-	release(m->guard);
+	acquire (m->mutex1);
+		-- m->readcount;
+		if (m->readcount == 0)
+			release (m->w);
+	release (m->mutex1);
 }
 
 void
 writelock(struct rwlock *m)
 {
-	acquire (m->guard); // This will stop new readers from entering critical section
-	acquire (m->lock); // Wait for all readers already in critical section to leave
+	acquire (m->mutex2);
+		++ m->writecount;
+		if (writecount == 1)
+			then  P(r);
+	release (m->mutex2);
+	acquire (m->w);
 }
 
 void
 writeunlock(struct rwlock *m)
 {
-	release (m->lock);
-	release (m->guard);
+	release (m->w);
+	acquire (m->mutex2);
+		-- writecount;
+		if (writecount == 0)
+			release (m->r);
+	release (m->mutex2);
 }
 
 int

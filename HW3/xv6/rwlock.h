@@ -10,8 +10,7 @@
 
 struct rwlock 
 {
-	int nreader;
-	struct spinlock *guard;
-	struct spinlock *lock;
+	int readcount, writecount;
+	struct spinlock mutex1, mutex2, mutex3, w, r;
 };
 
