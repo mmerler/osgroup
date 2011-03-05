@@ -7,7 +7,6 @@
 #include "rwlock.h"
 #include "proc.h"
 
-#include "stat.h"
 
 
 struct {
@@ -196,6 +195,8 @@ growproc(int n)
 int
 fork(void)
 {
+  cprintf("It should work here!!!!!\n");
+
   int i, pid;
   struct proc *np;
 
@@ -249,8 +250,8 @@ int tfork( void (*entry)(void *), void *arg, void *spbottom )
  // void* arg = 0;
   //uint* spbottom = 0;
 
-  printf( "spbottom : %d\n", *(uint *) spbottom );
-  printf( "arg : %d\n", *(uint *) arg );
+  cprintf( "spbottom : %p\n",  (int *)spbottom );
+ // printf( "arg : %d\n",  *((int *)arg) );
   // Allocate process.
   if((np = allocproc()) == 0)
     return -1;

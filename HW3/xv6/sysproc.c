@@ -10,6 +10,8 @@
 int
 sys_tfork(void)
 {
+   cprintf( "Hello Michele\n" );
+
   // HW3 TODO
   void (*entry)(void *) = 0;
   void *arg = 0;
