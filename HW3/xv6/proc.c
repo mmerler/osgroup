@@ -237,6 +237,40 @@ fork(void)
   return pid;
 }
 
+int tfork(void)
+{
+  int i, pid;
+  struct proc *np;
+
+  // Allocate process.
+  if((np = allocproc()) == 0)
+    return -1;
+
+  np->common = &np->threadcommon;
+
+  // Copy process state from p.
+
+  acquire(&proc->common->lock);
+  np->common = np->parent->common; 
+  np->common->count++;
+  release(&proc->common->lock);
+  
+  // Clear %eax so that fork returns 0 in the child.
+  *np->tf = *proc->tf;
+  np->tf->eax = 0;
+
+  // Make sure the page table lock is unlocked.
+  //initrwlock(&np->common->pglock);
+
+  np->parent = proc;
+  safestrcpy(np->name, proc->name, sizeof(proc->name));
+  np->state = RUNNABLE;
+
+  pid = np->pid;
+
+  return pid;
+}
+
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
 // until its parent calls wait() to find out it exited.

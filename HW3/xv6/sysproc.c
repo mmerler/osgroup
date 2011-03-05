@@ -11,7 +11,7 @@ int
 sys_tfork(void)
 {
   // HW3 TODO
-  return 0;
+  return tfork();
 }
 
 int
