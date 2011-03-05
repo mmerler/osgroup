@@ -13,23 +13,37 @@
 void
 initrwlock(struct rwlock *m)
 {
-	m->nreader = 0;
+	m->readcount = 0;
+	m->writecount = 0;
 	
-	struct spinlock *guard = (struct spinlock *) kalloc ();
-	struct spinlock *lock = (struct spinlock *) kalloc ();
+	struct spinlock *mutex1 = (struct spinlock *) kalloc ();
+	struct spinlock *mutex2 = (struct spinlock *) kalloc ();
+	struct spinlock *mutex3 = (struct spinlock *) kalloc ();
+	struct spinlock *r = (struct spinlock *) kalloc ();
+	struct spinlock *w = (struct spinlock *) kalloc ();
 
-	initlock (guard, "guard");
-	initlock (lock, "guard");
+	initlock (mutex1, "mutex1");
+	initlock (mutex2, "mutex2");
+	initlock (mutex3, "mutex3");
+	initlock (w, "w");
+	initlock (r, "r");
 
-	m->guard = guard;
-	m->lock = lock;
+	m->mutex1 = mutex1;
+	m->mutex2 = mutex2;
+	m->mutex3 = mutex3;
+	m->w = w;
+	m->r = r;
 }
 
 void
 destroyrwlock(struct rwlock *m)
 {
-	kfree ((void *) m->guard);
-	kfree ((void *) m->guard);
+	kfree ((void *) m->mutex1);
+	kfree ((void *) m->mutex2);
+	kfree ((void *) m->mutex3);
+	kfree ((void *) m->w);
+	kfree ((void *) m->r);
+
 	kfree ((void *) m);
 }
 
