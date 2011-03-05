@@ -109,9 +109,9 @@ int             wait(void);
 void            wakeup(void*);
 void            yield(void);
 int             pschk(void);
-int             tfork(uint, uint, uint);
+int             tfork(void (*)(void *), void*, void*);
 int             texit(void);
-int             twait(int pid);
+int             twait(int);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
