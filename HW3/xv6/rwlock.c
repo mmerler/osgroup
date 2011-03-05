@@ -10,6 +10,12 @@
 #include "rwlock.h"
 #include "proc.h"
 
+/*
+	Implementation of Reader-Writer lock as described by Courtois
+	et al. in "Concurrent Control with 'Readers' and 'Writers.'"
+	Communications of the ACM, vol. 10, pp. 667-8, Oct. 1971.
+*/
+
 void
 initrwlock(struct rwlock *m)
 {
@@ -50,12 +56,15 @@ destroyrwlock(struct rwlock *m)
 void
 readlock(struct rwlock *m)
 {
-	acquire (m->mutex3);
+	acquire (m->mutex3); //mutex3 ensures that a reader has exlusive
+			    // access from acquire (m->r) to release (m->r)
+			    // inclusive. In other words, only one reader is
+			    // ever waiting at r.
 		acquire (m->r);
 			acquire(m->mutex1);
 				++ m->readcount;
 				if(m->readcount == 1) 
-					acquire(m->w);
+					acquire(m->w); //stops writers
 			release(m->mutex1);
 		release (m->r);
 	release (m->mutex3);
@@ -64,7 +73,7 @@ readlock(struct rwlock *m)
 void
 readunlock(struct rwlock *m)
 {
-	acquire (m->mutex1);
+	acquire (m->mutex1);//ensures that only one reader is in this section
 		-- m->readcount;
 		if (m->readcount == 0)
 			release (m->w);
@@ -74,10 +83,11 @@ readunlock(struct rwlock *m)
 void
 writelock(struct rwlock *m)
 {
-	acquire (m->mutex2);
+	acquire (m->mutex2);//ensures that only one writer is in this section
 		++ m->writecount;
 		if (m->writecount == 1)
-			acquire(m->r);
+			acquire(m->r); //stops new readers from entering the
+					//critical section.
 	release (m->mutex2);
 	acquire (m->w);
 }
