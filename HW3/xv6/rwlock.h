@@ -8,7 +8,10 @@
 #define OP_WRITEUNLOCK  4
 #define OP_DESTROY      5
 
-struct rwlock {
-// Fill your rwlock here
+struct rwlock 
+{
+	int nreader;
+	struct spinlock *guard;
+	struct spinlock *lock;
 };
 

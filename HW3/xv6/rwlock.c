@@ -13,37 +13,58 @@
 void
 initrwlock(struct rwlock *m)
 {
-// HW3 Todo
+	m->nreader = 0;
+	
+	struct spinlock *guard = (struct spinlock *) kalloc ();
+	struct spinlock *lock = (struct spinlock *) kalloc ();
+
+	initlock (guard, "guard");
+	initlock (lock, "guard");
+
+	m->guard = guard;
+	m->lock = lock;
 }
 
 void
 destroyrwlock(struct rwlock *m)
 {
-// HW3 Todo
+	kfree ((void *) m->guard);
+	kfree ((void *) m->guard);
+	kfree ((void *) m);
 }
 
 void
 readlock(struct rwlock *m)
 {
-// HW3 Todo
+	acquire (m->guard);
+	++ m->nreader;
+	if(m->nreader == 1) // first reader 
+		acquire(m->lock); 
+	release(m->guard);
 }
 
 void
 readunlock(struct rwlock *m)
 {
-// HW3 Todo
+	acquire(m->guard);
+	-- m->nreader;
+	if(m->nreader == 0) // last reader 
+		release(m->lock);
+	release(m->guard);
 }
 
 void
 writelock(struct rwlock *m)
 {
-// HW3 Todo
+	acquire (m->guard); // This will stop new readers from entering critical section
+	acquire (m->lock); // Wait for all readers already in critical section to leave
 }
 
 void
 writeunlock(struct rwlock *m)
 {
-// HW3 Todo
+	release (m->lock);
+	release (m->guard);
 }
 
 int
