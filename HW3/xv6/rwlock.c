@@ -46,7 +46,11 @@ readlock(struct rwlock *m)
 void
 readunlock(struct rwlock *m)
 {
-// HW3 Todo
+	acquire(m->guard);
+	-- m->nreader;
+	if(m->nreader == 0) // last reader 
+		release(m->lock);
+	release(m->guard);
 }
 
 void
