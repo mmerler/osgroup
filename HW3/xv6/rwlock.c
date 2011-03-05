@@ -56,7 +56,8 @@ readunlock(struct rwlock *m)
 void
 writelock(struct rwlock *m)
 {
-// HW3 Todo
+	acquire (m->guard); // This will stop new readers from entering critical section
+	acquire (m->lock); // Wait for all readers already in critical section to leave
 }
 
 void
