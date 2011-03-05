@@ -11,6 +11,6 @@
 struct rwlock 
 {
 	int readcount, writecount;
-	struct spinlock mutex1, mutex2, mutex3, w, r;
+	struct spinlock *mutex1, *mutex2, *mutex3, *w, *r;
 };
 
