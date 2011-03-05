@@ -13,19 +13,30 @@
 void
 initrwlock(struct rwlock *m)
 {
-// HW3 Todo
+	m->nreader = 0;
+	
+	struct spinlock *guard = kalloc (sizeof (struct spinlock));
+	struct spinlock *lock = kalloc (sizeof (struct spinlock));
+
+	initlock (guard, "guard");
+	initlock (lock, "guard");
+
+	m->guard = guard;
+	m->lock = lock;
 }
 
 void
 destroyrwlock(struct rwlock *m)
 {
-// HW3 Todo
+	kfree ((void *) m->guard);
+	kfree ((void *) m->guard);
+	kfree ((void *) m);
 }
 
 void
 readlock(struct rwlock *m)
 {
-// HW3 Todo
+	
 }
 
 void
