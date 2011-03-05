@@ -5,7 +5,6 @@ struct rwlock;
 
 // system calls
 int fork(void);
-int tfork(void);
 int exit(void) __attribute__((noreturn));
 int wait(void);
 int pipe(int*);

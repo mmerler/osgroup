@@ -237,14 +237,14 @@ fork(void)
   return pid;
 }
 
-int tfork(void)
+int tfork( void (*entry)(void *), void *arg, void *spbottom )
 {
 
   int pid;
   struct proc *np;
-  void* entry = 0;
-  void* arg = 0;
-  uint* spbottom = 0;
+ // void* entry = 0;
+ // void* arg = 0;
+ // uint* spbottom = 0;
 
   if ((getuserbuf(1, entry, sizeof(void*))) == -1) {
       return -1;}
@@ -252,7 +252,7 @@ int tfork(void)
   if ((getuserbuf(1, arg, sizeof(void*)))== -1) {
     return -1;}
 
-  if ((getuserbuf(1, spbottom, sizeof(void*)))==-1) {
+  if ((getuserbuf(1, (uint)spbottom, sizeof(void*)))==-1) {
     return -1;}
 
   // Allocate process.
@@ -318,7 +318,7 @@ int texit(void)
 
 }
 
-int twait(void)
+int twait(int pid)
 {
   /* int* ip;  */
 
