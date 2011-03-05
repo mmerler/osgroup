@@ -21,6 +21,7 @@ initrwlock(struct rwlock *m)
 {
 	m->readcount = 0;
 	m->writecount = 0;
+	m->wantsR = 0;
 	
 	struct spinlock *mutex1 = (struct spinlock *) kalloc ();
 	struct spinlock *mutex2 = (struct spinlock *) kalloc ();
@@ -58,7 +59,7 @@ readlock(struct rwlock *m)
 {
 	acquire (m->mutex3); //mutex3 ensures that a reader has exlusive
 			    // access from acquire (m->r) to release (m->r)
-			    // inclusive. In other words, only one reader is
+			    // inclusive. In other words, only one process is
 			    // ever waiting at r.
 		acquire (m->r);
 			acquire(m->mutex1);
@@ -67,6 +68,29 @@ readlock(struct rwlock *m)
 					acquire(m->w); //stops writers
 			release(m->mutex1);
 		release (m->r);
+	if (m->wantsR == 1) yield ();
+	/*
+		This is my addition to the Courtois et al. solution. I am
+		not satisified that, while a writer is waiting at r, a reader
+		could release r and mutex3 and another reader could acquire
+		both of them before the writer has a chance. Theoretically,
+		as far as I can see, the writer could still starve. By
+		placing a yield () after release r and before release mutex3,
+		we ensure that the writer has a chance to acquire r before 
+		the next reader.
+
+		Simply adding a yield would, of course, create serious
+		preformance issues as each reader would have to wait to be
+		reschedualed before it could reader. For this reason we
+		added a variable wantsR with the writer sets to tell the
+		readers that it wants them to yield. Writes to wantsR are
+		protected by mutex2. Reads to wantsR are not synchronized 
+		and could produce undefined results. However, the worse case
+		scenario is that a reader fails to yeild when it is suppose
+		to or yeilds when it doesn't have to. Once way, it preforms
+		the same as the Courtois et al. lock and the other it
+		causes a minor preformance loss. Either way, not a disaster.
+	*/
 	release (m->mutex3);
 }
 
@@ -86,8 +110,12 @@ writelock(struct rwlock *m)
 	acquire (m->mutex2);//ensures that only one writer is in this section
 		++ m->writecount;
 		if (m->writecount == 1)
+		{
+			m->wantsR = 1;
 			acquire(m->r); //stops new readers from entering the
 					//critical section.
+			m->wantsR = 0;
+		}
 	release (m->mutex2);
 	acquire (m->w);
 }
