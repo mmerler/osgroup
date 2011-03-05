@@ -239,29 +239,43 @@ fork(void)
 
 int tfork(void)
 {
-  int i, pid;
+
+  int pid;
   struct proc *np;
+  void* entry = 0;
+  void* arg = 0;
+  uint* spbottom = 0;
+
+  if ((getuserbuf(1, entry, sizeof(void*))) == -1) {
+      return -1;}
+
+  if ((getuserbuf(1, arg, sizeof(void*)))== -1) {
+    return -1;}
+
+  if ((getuserbuf(1, spbottom, sizeof(void*)))==-1) {
+    return -1;}
 
   // Allocate process.
   if((np = allocproc()) == 0)
     return -1;
 
-  np->common = &np->threadcommon;
+  np->common = &proc->threadcommon;
 
-  // Copy process state from p.
+  *spbottom = (uint)arg;
+  spbottom -= 4;
+  *spbottom = 0xffffffff;
+  spbottom -= 4;
 
-  acquire(&proc->common->lock);
-  np->common = np->parent->common; 
-  np->common->count++;
-  release(&proc->common->lock);
-  
+
   // Clear %eax so that fork returns 0 in the child.
   *np->tf = *proc->tf;
-  np->tf->eax = 0;
+  //np->tf->eax = 0;
 
-  // Make sure the page table lock is unlocked.
-  //initrwlock(&np->common->pglock);
-
+  // np->tf->ss
+  np->tf->esp = (uint)spbottom;
+  np->tf->eip = (uint)entry;
+  // np->tf->cs
+  
   np->parent = proc;
   safestrcpy(np->name, proc->name, sizeof(proc->name));
   np->state = RUNNABLE;
@@ -269,7 +283,58 @@ int tfork(void)
   pid = np->pid;
 
   return pid;
+
 }
+
+int texit(void)
+{
+  // main thread 
+  if ( proc->common == &proc->threadcommon ) 
+    return -1;
+  
+  struct proc *p;
+
+
+  acquire(&ptable.lock);
+
+  // Parent might be sleeping in wait().
+  wakeup1(proc->parent);
+
+  // Pass abandoned children to init.
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->parent == proc){
+      p->parent = initproc;
+      if(p->state == ZOMBIE)
+        wakeup1(initproc);
+    }
+  }
+
+  // Jump into the scheduler, never to return.
+  proc->state = ZOMBIE;
+  sched();
+  panic("zombie exit");
+
+  
+
+}
+
+int twait(void)
+{
+  /* int* ip;  */
+
+  /* if (getuserint(1, ip)==-1) { return -1;} */
+  /* int tid = *ip; */
+
+  /* if ( tid == proc->parent ) { return -1; } */
+
+  
+
+  /* return -1; */
+
+
+  return 0;
+}
+
 
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
