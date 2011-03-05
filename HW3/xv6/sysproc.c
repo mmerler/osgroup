@@ -60,6 +60,9 @@ sys_kill(void)
 int
 sys_getpid(void)
 {
+  if( proc->common == proc->parent->common )
+     return proc->parent->pid;
+
   return proc->pid;
 }
 
