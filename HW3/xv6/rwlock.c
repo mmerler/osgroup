@@ -63,7 +63,8 @@ writelock(struct rwlock *m)
 void
 writeunlock(struct rwlock *m)
 {
-// HW3 Todo
+	release (m->lock);
+	release (m->guard);
 }
 
 int
