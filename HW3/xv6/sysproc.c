@@ -10,24 +10,28 @@
 int
 sys_tfork(void)
 {
-   cprintf( "Hello Michele\n" );
-
   // HW3 TODO
   void (*entry)(void *) = 0;
   void *arg = 0;
-  void *spbottom = 0;
+  int spbottom = 0;
 
-  if ((getuserbuf(0, entry, sizeof(void*))) == -1) {
-      return -1;}
+  if ( getuserint(0,(int *) entry ) == -1 ) {
+      cprintf("Could not allocate entry\n");
+      return -1;
+  }
 
-  if ((getuserbuf(1, arg, sizeof(void*)))== -1) {
-    return -1;}
+  if ( getuserint(1,(int *) arg)== -1 ) {
+    cprintf("Could not allocate arg\n");
+    return -1;
+  }
 
-  if ((getuserbuf(2, spbottom, sizeof(void*)))==-1) {
-    return -1;}
+  if ( getuserint(2, &spbottom ) == -1 ) {
+    cprintf("Could not allocate spbottom\n");
+    return -1; 
+  }
 
 
-  return tfork( entry, arg, spbottom);
+  return tfork( entry, arg, &spbottom);
 }
 
 int
