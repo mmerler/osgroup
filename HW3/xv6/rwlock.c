@@ -10,6 +10,12 @@
 #include "rwlock.h"
 #include "proc.h"
 
+/*
+	This is an implemtation of the reader writer lock that favors the
+	writer as presented by Courtois et al. "Concurrent Control with
+	'Readers' and 'Writers'" Communications of the ACM, Vol. 14, 
+	Number 10, Oct. 1971.
+*/
 void
 initrwlock(struct rwlock *m)
 {
@@ -45,7 +51,7 @@ destroyrwlock(struct rwlock *m)
 	kfree ((void *) m->w);
 	kfree ((void *) m->r);*/
 
-	kfree ((void *) m);
+	//kfree ((void *) m);
 }
 
 void
@@ -55,16 +61,14 @@ readlock(struct rwlock *m)
 			    // access from acquire (m->r) to release (m->r)
 			    // inclusive. In other words, only one process 
 			    // is ever waiting at r.
-		//cprintf ("hi ");
 		acquire (&m->r);
-		//cprintf ("bye ");
 			acquire(&m->mutex1);
-				++ m->readcount;
+				m->readcount = m->readcount + 1;
 				if(m->readcount == 1) 
 					acquire(&m->w); //stops writers
 			release(&m->mutex1);
 		release (&m->r);
-	//if (m->wantsR == 1) yield ();
+	if (m->wantsR == 1) yield ();
 	/*
 		This is my addition to the Courtois et al. solution. I am
 		not satisified that, while a writer is waiting at r, a 
@@ -94,7 +98,7 @@ void
 readunlock(struct rwlock *m)
 {
 	acquire (&m->mutex1);//ensures that only one reader is in this section
-		-- m->readcount;
+		m->readcount = m->readcount - 1;
 		if (m->readcount == 0)
 			release (&m->w);
 	release (&m->mutex1);
@@ -103,16 +107,15 @@ readunlock(struct rwlock *m)
 void
 writelock(struct rwlock *m)
 {
-	cprintf ("--w lock--\n");
 
 	acquire (&m->mutex2);//ensures that only one writer is in this section
-		++ m->writecount;
+		m->writecount = m->writecount + 1;
 		if (m->writecount == 1)
 		{
-			//m->wantsR = 1;
+			m->wantsR = 1;
 			acquire(&m->r); //stops new readers from entering 
 					//the critical section.
-			//m->wantsR = 0;
+			m->wantsR = 0;
 		}
 	release (&m->mutex2);
 	acquire (&m->w);
@@ -121,12 +124,11 @@ writelock(struct rwlock *m)
 void
 writeunlock(struct rwlock *m)
 {
-	cprintf ("--w unlock--\n");
 	release (&m->w);
 	acquire (&m->mutex2);
-		-- m->writecount;
-		if (&m->writecount == 0)
-			release (&m->r);
+		m->writecount = m->writecount - 1;
+		if (m->writecount == 0) release (&m->r);
+
 	release (&m->mutex2);
 }
 
