@@ -109,7 +109,7 @@ int             wait(void);
 void            wakeup(void*);
 void            yield(void);
 int             pschk(void);
-int             tfork(void (*)(void *), void*, void*);
+int             tfork(uint, uint, uint);
 int             texit(void);
 int             twait(int);
 

@@ -10,24 +10,32 @@
 int
 sys_tfork(void)
 {
-   cprintf( "Hello Michele\n" );
-
   // HW3 TODO
-  void (*entry)(void *) = 0;
-  void *arg = 0;
-  void *spbottom = 0;
+  int entry = 0;
+  int arg = 0;
+  int spbottom = 0;
 
-  if ((getuserbuf(0, entry, sizeof(void*))) == -1) {
-      return -1;}
+  if ( getuserint(0, &entry) == -1 ) {
+      cprintf("Could not read entry\n");
+      return -1;
+  }
 
-  if ((getuserbuf(1, arg, sizeof(void*)))== -1) {
-    return -1;}
+  if ( getuserint(1, &arg)== -1 ) {
+    cprintf("Could not read arg\n");
+    return -1;
+  }
 
-  if ((getuserbuf(2, spbottom, sizeof(void*)))==-1) {
-    return -1;}
+  if ( getuserint(2, &spbottom) == -1 ) {
+    cprintf("Could not read spbottom\n");
+    return -1; 
+  }
+  
+  if( (uint)spbottom > proc->common->sz){
+    cprintf("spbottom too small : %d : %d\n",(uint)spbottom, proc->common->sz );
+    return -1; 
+  }
 
-
-  return tfork( entry, arg, spbottom);
+  return tfork( (uint)entry, (uint)arg, (uint)spbottom );
 }
 
 int

@@ -10,15 +10,10 @@
 #include "rwlock.h"
 #include "proc.h"
 
-/*
-	Implementation of Reader-Writer lock as described by Courtois
-	et al. in "Concurrent Control with 'Readers' and 'Writers.'"
-	Communications of the ACM, vol. 10, pp. 667-8, Oct. 1971.
-*/
-
 void
 initrwlock(struct rwlock *m)
 {
+<<<<<<< HEAD
 	m->readcount = 0;
 	m->writecount = 0;
 	m->wantsR = 0;
@@ -40,11 +35,15 @@ initrwlock(struct rwlock *m)
 	m->mutex3 = mutex3;
 	m->w = w;
 	m->r = r;*/
+=======
+// HW3 Todo
+>>>>>>> master
 }
 
 void
 destroyrwlock(struct rwlock *m)
 {
+<<<<<<< HEAD
 	/*kfree ((void *) m->mutex1);
 	kfree ((void *) m->mutex2);
 	kfree ((void *) m->mutex3);
@@ -52,11 +51,15 @@ destroyrwlock(struct rwlock *m)
 	kfree ((void *) m->r);*/
 
 	kfree ((void *) m);
+=======
+// HW3 Todo
+>>>>>>> master
 }
 
 void
 readlock(struct rwlock *m)
 {
+<<<<<<< HEAD
 	acquire (&m->mutex3); //mutex3 ensures that a reader has exlusive
 			    // access from acquire (m->r) to release (m->r)
 			    // inclusive. In other words, only one process 
@@ -94,21 +97,29 @@ readlock(struct rwlock *m)
 		a disaster.
 	*/
 	release (&m->mutex3);
+=======
+// HW3 Todo
+>>>>>>> master
 }
 
 void
 readunlock(struct rwlock *m)
 {
+<<<<<<< HEAD
 	acquire (&m->mutex1);//ensures that only one reader is in this section
 		-- m->readcount;
 		if (m->readcount == 0)
 			release (&m->w);
 	release (&m->mutex1);
+=======
+// HW3 Todo
+>>>>>>> master
 }
 
 void
 writelock(struct rwlock *m)
 {
+<<<<<<< HEAD
 	acquire (&m->mutex2);//ensures that only one writer is in this section
 		++ m->writecount;
 		if (m->writecount == 1)
@@ -120,17 +131,24 @@ writelock(struct rwlock *m)
 		}
 	release (&m->mutex2);
 	acquire (&m->w);
+=======
+// HW3 Todo
+>>>>>>> master
 }
 
 void
 writeunlock(struct rwlock *m)
 {
+<<<<<<< HEAD
 	release (&m->w);
 	acquire (&m->mutex2);
 		-- m->writecount;
 		if (&m->writecount == 0)
 			release (&m->r);
 	release (&m->mutex2);
+=======
+// HW3 Todo
+>>>>>>> master
 }
 
 int
