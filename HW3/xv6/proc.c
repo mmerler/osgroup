@@ -443,6 +443,7 @@ exit(void)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->mainThread == proc->mainThread){
         // Parent might be sleeping in wait().
+	  p->state = ZOMBIE;	
       wakeup1(p->parent);
     }
   }
@@ -451,7 +452,7 @@ exit(void)
 
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->parent == proc  ){  //|| p->mainThread == proc
+    if(p->parent == proc) { //|| p->mainThread == proc
       p->parent = initproc;
       if(p->state == ZOMBIE)
         wakeup1(initproc);
