@@ -23,33 +23,33 @@ initrwlock(struct rwlock *m)
 	m->writecount = 0;
 	m->wantsR = 0;
 	
-	struct spinlock *mutex1 = (struct spinlock *) kalloc ();
+	/*struct spinlock *mutex1 = (struct spinlock *) kalloc ();
 	struct spinlock *mutex2 = (struct spinlock *) kalloc ();
 	struct spinlock *mutex3 = (struct spinlock *) kalloc ();
 	struct spinlock *r = (struct spinlock *) kalloc ();
-	struct spinlock *w = (struct spinlock *) kalloc ();
+	struct spinlock *w = (struct spinlock *) kalloc ();*/
 
-	initlock (mutex1, "mutex1");
-	initlock (mutex2, "mutex2");
-	initlock (mutex3, "mutex3");
-	initlock (w, "w");
-	initlock (r, "r");
+	initlock (&m->mutex1, "mutex1");
+	initlock (&m->mutex2, "mutex2");
+	initlock (&m->mutex3, "mutex3");
+	initlock (&m->w, "w");
+	initlock (&m->r, "r");
 
-	m->mutex1 = mutex1;
+	/*m->mutex1 = mutex1;
 	m->mutex2 = mutex2;
 	m->mutex3 = mutex3;
 	m->w = w;
-	m->r = r;
+	m->r = r;*/
 }
 
 void
 destroyrwlock(struct rwlock *m)
 {
-	kfree ((void *) m->mutex1);
+	/*kfree ((void *) m->mutex1);
 	kfree ((void *) m->mutex2);
 	kfree ((void *) m->mutex3);
 	kfree ((void *) m->w);
-	kfree ((void *) m->r);
+	kfree ((void *) m->r);*/
 
 	kfree ((void *) m);
 }
@@ -57,27 +57,28 @@ destroyrwlock(struct rwlock *m)
 void
 readlock(struct rwlock *m)
 {
-	acquire (m->mutex3); //mutex3 ensures that a reader has exlusive
+	acquire (&m->mutex3); //mutex3 ensures that a reader has exlusive
 			    // access from acquire (m->r) to release (m->r)
-			    // inclusive. In other words, only one process is
-			    // ever waiting at r.
-		acquire (m->r);
-			acquire(m->mutex1);
+			    // inclusive. In other words, only one process 
+			    // is ever waiting at r.
+		//cprintf ("hi");
+		acquire (&m->r);
+		//cprintf ("bye");
+			acquire(&m->mutex1);
 				++ m->readcount;
 				if(m->readcount == 1) 
-					acquire(m->w); //stops writers
-			release(m->mutex1);
-		release (m->r);
-	if (m->wantsR == 1) yield ();
+					acquire(&m->w); //stops writers
+			release(&m->mutex1);
+		release (&m->r);
+	//if (m->wantsR == 1) yield ();
 	/*
 		This is my addition to the Courtois et al. solution. I am
-		not satisified that, while a writer is waiting at r, a reader
-		could release r and mutex3 and another reader could acquire
-		both of them before the writer has a chance. Theoretically,
-		as far as I can see, the writer could still starve. By
-		placing a yield () after release r and before release mutex3,
-		we ensure that the writer has a chance to acquire r before 
-		the next reader.
+		not satisified that, while a writer is waiting at r, a 
+		reader could release r and mutex3 and another reader could 
+		acquire both of them before the writer has a chance. 
+		Theoretically, as far as I can see, the writer could still 			starve. By placing a yield () after release r and before
+		release mutex3, we ensure that the writer has a chance to 
+		acquire r before the next reader.
 
 		Simply adding a yield would, of course, create serious
 		preformance issues as each reader would have to wait to be
@@ -85,50 +86,51 @@ readlock(struct rwlock *m)
 		added a variable wantsR with the writer sets to tell the
 		readers that it wants them to yield. Writes to wantsR are
 		protected by mutex2. Reads to wantsR are not synchronized 
-		and could produce undefined results. However, the worse case
-		scenario is that a reader fails to yeild when it is suppose
-		to or yeilds when it doesn't have to. Once way, it preforms
-		the same as the Courtois et al. lock and the other it
-		causes a minor preformance loss. Either way, not a disaster.
+		and could produce undefined results. However, the worse 
+		case scenario is that a reader fails to yeild when it is 
+		suppose to or yeilds when it doesn't have to. Once way, it 
+		preforms the same as the Courtois et al. lock and the 
+		other it causes a minor preformance loss. Either way, not 
+		a disaster.
 	*/
-	release (m->mutex3);
+	release (&m->mutex3);
 }
 
 void
 readunlock(struct rwlock *m)
 {
-	acquire (m->mutex1);//ensures that only one reader is in this section
+	acquire (&m->mutex1);//ensures that only one reader is in this section
 		-- m->readcount;
 		if (m->readcount == 0)
-			release (m->w);
-	release (m->mutex1);
+			release (&m->w);
+	release (&m->mutex1);
 }
 
 void
 writelock(struct rwlock *m)
 {
-	acquire (m->mutex2);//ensures that only one writer is in this section
+	acquire (&m->mutex2);//ensures that only one writer is in this section
 		++ m->writecount;
 		if (m->writecount == 1)
 		{
-			m->wantsR = 1;
-			acquire(m->r); //stops new readers from entering the
-					//critical section.
-			m->wantsR = 0;
+			//m->wantsR = 1;
+			acquire(&m->r); //stops new readers from entering 
+					//the critical section.
+			//m->wantsR = 0;
 		}
-	release (m->mutex2);
-	acquire (m->w);
+	release (&m->mutex2);
+	acquire (&m->w);
 }
 
 void
 writeunlock(struct rwlock *m)
 {
-	release (m->w);
-	acquire (m->mutex2);
+	release (&m->w);
+	acquire (&m->mutex2);
 		-- m->writecount;
-		if (m->writecount == 0)
-			release (m->r);
-	release (m->mutex2);
+		if (&m->writecount == 0)
+			release (&m->r);
+	release (&m->mutex2);
 }
 
 int
