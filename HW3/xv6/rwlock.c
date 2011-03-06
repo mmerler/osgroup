@@ -11,10 +11,10 @@
 #include "proc.h"
 
 /*
-	This is an implemtation of the reader writer lock that favors the
-	writer as presented by Courtois et al. "Concurrent Control with
-	'Readers' and 'Writers'" Communications of the ACM, Vol. 14, 
-	Number 10, Oct. 1971.
+	This is an implemtation of the reader writer lock design that 
+	favors the writer presented by Courtois et al. "Concurrent 
+	Control with 'Readers' and 'Writers'" Communications of the ACM, 
+	Vol. 14, Number 10, Oct. 1971.
 */
 void
 initrwlock(struct rwlock *m)
