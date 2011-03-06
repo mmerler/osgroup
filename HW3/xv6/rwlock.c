@@ -68,7 +68,7 @@ readlock(struct rwlock *m)
 					acquire(&m->w); //stops writers
 			release(&m->mutex1);
 		release (&m->r);
-	if (m->wantsR == 1) yield ();
+	//if (m->wantsR == 1) yield ();
 	/*
 		This is my addition to the Courtois et al. solution. I am
 		not satisified that, while a writer is waiting at r, a 
@@ -112,10 +112,10 @@ writelock(struct rwlock *m)
 		m->writecount = m->writecount + 1;
 		if (m->writecount == 1)
 		{
-			m->wantsR = 1;
+			//m->wantsR = 1;
 			acquire(&m->r); //stops new readers from entering 
 					//the critical section.
-			m->wantsR = 0;
+			//m->wantsR = 0;
 		}
 	release (&m->mutex2);
 	acquire (&m->w);
