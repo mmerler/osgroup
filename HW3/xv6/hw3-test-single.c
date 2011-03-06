@@ -10,6 +10,8 @@ void entry(void *arg)
 {
   check = MAGIC_VALUE;
 
+  printf(stdout,"Hey I work!\n");
+  
   texit();
 }
 
@@ -41,6 +43,7 @@ int main(int argc, char *argv[])
     handle_error("texit() error");
 
   PROC_CHECK(3);
+  
 
   printf(stdout, "hw3-test-single succeeded!\n");
 

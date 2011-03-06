@@ -195,8 +195,6 @@ growproc(int n)
 int
 fork(void)
 {
-  cprintf("It should work here!!!!!\n");
-
   int i, pid;
   struct proc *np;
 
@@ -241,26 +239,28 @@ fork(void)
   return pid;
 }
 
-int tfork( void (*entry)(void *), void *arg, void *spbottom )
+int tfork( uint entry, uint arg, uint spbottom )
 {
 
   int pid;
   struct proc *np;
- // void* entry = 0;
- // void* arg = 0;
-  //uint* spbottom = 0;
 
-  cprintf( "spbottom : %p\n",  (int *)spbottom );
- // printf( "arg : %d\n",  *((int *)arg) );
+  cprintf( "entry : %d\n",  entry );
+  cprintf( "arg : %d\n",  arg );
+  cprintf( "spbottom : %d\n",  spbottom );
+  
   // Allocate process.
   if((np = allocproc()) == 0)
     return -1;
 
   np->common = &proc->threadcommon;
 
+  spbottom -= 4;
   *(uint *)spbottom = (uint) arg;
+  
   spbottom -= 4;
   *(uint *)spbottom = 0xffffffff;
+  
   spbottom -= 4;
 
 
@@ -272,13 +272,14 @@ int tfork( void (*entry)(void *), void *arg, void *spbottom )
   np->tf->esp = (uint)spbottom;
   np->tf->eip = (uint)entry;
   // np->tf->cs
+
   
   np->parent = proc;
   safestrcpy(np->name, proc->name, sizeof(proc->name));
   np->state = RUNNABLE;
 
   pid = np->pid;
-
+  
   return pid;
 
 }
