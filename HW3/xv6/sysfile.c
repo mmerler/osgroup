@@ -423,6 +423,14 @@ sys_chdir(void)
 int
 sys_exec(void)
 {
+
+  acquire(&proc->common->lock);
+  if ( proc->common->count > 1 ) 
+    {
+      return -1;
+    }
+  release(&proc->common->lock);
+
   char path[MAXPATH], *argv[20];
   int i, len;
   uint uargv, uarg;

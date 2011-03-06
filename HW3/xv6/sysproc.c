@@ -29,6 +29,12 @@ sys_tfork(void)
     cprintf("Could not read spbottom\n");
     return -1; 
   }
+
+  int err = 0;
+  acquire(&proc->common->lock); 
+  if (( spbottom > proc->common->sz ) || (spbottom == 0)) { cprintf("spbottom invalid \n");err = 1; } 
+  release(&proc->common->lock);
+  if ( err ) { return -1;  }
   
   if( (uint)spbottom > proc->common->sz){
     cprintf("spbottom too small : %d : %d\n",(uint)spbottom, proc->common->sz );
@@ -42,14 +48,19 @@ int
 sys_texit(void)
 {
   // HW3 TODO
-  return 0;
+  return texit();
 }
 
 int
-sys_twait(int tid)
+sys_twait(void)
 {
   // HW3 TODO
-  return 0;
+  int tid;
+  
+  if ( getuserint(0, &tid) == -1 )
+     return -1;
+	 
+  return twait(tid);
 }
 
 int
@@ -84,10 +95,10 @@ sys_kill(void)
 int
 sys_getpid(void)
 {
-  if( proc->common == proc->parent->common )
-     return proc->parent->pid;
+  //  if( proc->common != &proc->threadcommon )
+  return proc->mainThread->pid;
 
-  return proc->pid;
+  //return proc->pid;
 }
 
 int
