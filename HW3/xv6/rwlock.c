@@ -55,9 +55,9 @@ readlock(struct rwlock *m)
 			    // access from acquire (m->r) to release (m->r)
 			    // inclusive. In other words, only one process 
 			    // is ever waiting at r.
-		//cprintf ("hi");
+		//cprintf ("hi ");
 		acquire (&m->r);
-		//cprintf ("bye");
+		//cprintf ("bye ");
 			acquire(&m->mutex1);
 				++ m->readcount;
 				if(m->readcount == 1) 
@@ -103,6 +103,8 @@ readunlock(struct rwlock *m)
 void
 writelock(struct rwlock *m)
 {
+	cprintf ("--w lock--\n");
+
 	acquire (&m->mutex2);//ensures that only one writer is in this section
 		++ m->writecount;
 		if (m->writecount == 1)
@@ -119,6 +121,7 @@ writelock(struct rwlock *m)
 void
 writeunlock(struct rwlock *m)
 {
+	cprintf ("--w unlock--\n");
 	release (&m->w);
 	acquire (&m->mutex2);
 		-- m->writecount;
