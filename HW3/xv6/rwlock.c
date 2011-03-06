@@ -12,7 +12,7 @@
 
 /*
 	This is an implemtation of the reader writer lock design that 
-	favors the writer presented by Courtois et al. "Concurrent 
+	favors the writer presented by Courtois et al. in "Concurrent 
 	Control with 'Readers' and 'Writers'" Communications of the ACM, 
 	Vol. 14, Number 10, Oct. 1971.
 */
