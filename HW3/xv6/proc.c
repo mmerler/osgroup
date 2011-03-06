@@ -446,12 +446,12 @@ exit(void)
       wakeup1(p->parent);
     }
   }
-
+  
 
 
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->parent == proc){
+    if(p->parent == proc  ){  //|| p->mainThread == proc
       p->parent = initproc;
       if(p->state == ZOMBIE)
         wakeup1(initproc);
@@ -486,25 +486,25 @@ wait(void)
       
       
       if(p->common != &p->threadcommon )
-	continue;
+		continue;
 
       havekids = 1;
 
       if(p->state == ZOMBIE){
         // Found one.
         acquire(&proc->common->lock);
-	pid = p->pid;
+		pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
         freevm(p->common->pgdir);
         p->state = UNUSED;
         p->pid = 0;
         p->parent = 0;
-	p->mainThread = 0;
+		p->mainThread = 0;
         p->name[0] = 0;
         p->common->killed = 0;
         p->common = 0;
-	release(&proc->common->lock);
+		release(&proc->common->lock);
         release(&ptable.lock);
         return pid;
       }
@@ -671,47 +671,52 @@ int
 kill(int pid)
 {
   struct proc *p;
-  struct proc* mainThreadRef = 0;
+  struct proc *p2;
+  //struct proc *mainThreadRef = 0;
 
   acquire(&ptable.lock);
-  acquire(&proc->common->lock);
   
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
 
+	  cprintf("Found proc %d and killed threads \n",pid); 
+	   
+	  acquire(&p->common->lock);
+	  
+	  // if it is not a main thread, return -1
       if ( p->common != &p->threadcommon ){
-	  release(&ptable.lock);
-	  release(&proc->common->lock);
-	  return -1; }
+	     cprintf("wait it was not a main thread!\n");
+	     release(&p->common->lock);
+		 release(&ptable.lock);
+	     return -1; 
+	  }
       else
-	{
-	  mainThreadRef = p->mainThread;
-	  p->common->killed = 1;
-	  break;
-	}
+	  {
+	     // it's a main thread, kill all other threads in the process
+	     p->common->killed = 1;
+		 
+		 if(p->state == SLEEPING) 
+			p->state = RUNNABLE;
+					
+		 for(p2 = ptable.proc; p2 < &ptable.proc[NPROC]; p2++){ 
 
-
+			if ( p2->mainThread == p ){
+			   cprintf("%d ",p2->pid); 
+			   if(p2->state == SLEEPING) 
+					p2->state = RUNNABLE;
+			}
+		 }
+		 cprintf("\n");
+		 
+         release(&p->common->lock);
+		 release(&ptable.lock);
+	     return 0;
+	  }
     }
   }
 
+  release(&ptable.lock);
 
-   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){ 
-
-      if ( p->mainThread == mainThreadRef )
-      {
-    
-	//Wake process from sleep if necessary.
-	  if(p->state == SLEEPING) {
-	    p->state = RUNNABLE; }
-	  
-	  	}
-
-     } 
-
-    release(&ptable.lock);
-    release(&proc->common->lock);
-
-    return 0;
+  return 0;
   
-
 }
