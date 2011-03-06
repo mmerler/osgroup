@@ -50,7 +50,7 @@ sys_twait(void)
 {
   // HW3 TODO
   int tid;
-  if ( getuserint(0, &tid) == -1 )
+  if ( getuserint(0, &tid) == -1 ) { return -1;}
   return twait(tid);
 }
 
