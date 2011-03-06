@@ -253,9 +253,6 @@ int tfork( uint entry, uint arg, uint spbottom )
   int pid;
   struct proc *np;
 
-/*   cprintf( "entry : %d\n",  entry ); */
-/*   cprintf( "arg : %d\n",  arg ); */
-/*   cprintf( "spbottom : %d\n",  spbottom ); */
   
   // Allocate process.
   if((np = allocproc()) == 0)
@@ -270,18 +267,13 @@ int tfork( uint entry, uint arg, uint spbottom )
   spbottom -= 4;
   *(uint *)spbottom = 0xffffffff;
   
-  //  spbottom -= 4;
-
 
   // Clear %eax so that fork returns 0 in the child.
   *np->tf = *proc->tf;
-  //np->tf->eax = 0;
 
-  // np->tf->ss
+  
   np->tf->esp = (uint)spbottom;
   np->tf->eip = (uint)entry;
-  // np->tf->cs
-
   
   np->parent = proc->parent;
 
@@ -289,9 +281,7 @@ int tfork( uint entry, uint arg, uint spbottom )
   np->common->count++;
   release(&proc->common->lock);
   
-  //  if(proc->common == &proc->threadcommon)
-  //	np->mainThread = proc;
-  //else
+
   np->mainThread = proc->mainThread;
   
   safestrcpy(np->name, proc->name, sizeof(proc->name));
@@ -313,9 +303,6 @@ int texit(void)
   
   struct proc *p;
 
-
-  //cprintf ( "texit intermediate1 \n");
-
   acquire(&ptable.lock);
 
   // Parent might be sleeping in wait().
@@ -330,21 +317,15 @@ int texit(void)
     }
   }
 
-  //cprintf ( "texit intermediate2 \n");
-
   // Jump into the scheduler, never to return.
   proc->state = ZOMBIE;
   sched();
   panic("zombie exit");
 
-  
-
 }
 
 int twait(int tid)
 {
-
-  //  cprintf("I entered twait\n");
 
   struct proc *p;
   int found = 0;
@@ -360,13 +341,13 @@ int twait(int tid)
 			found = 1;
 			
 			if( p->common == &p->threadcommon) {
-			  //cprintf("I found the tid and it was a main thread!\n");
+			    //cprintf("I found the tid and it was a main thread!\n");
 				release(&ptable.lock);
 				return -1;
 			}
 			else{
 				if(p->state == ZOMBIE){
-				  //       cprintf("I found the tid and it is a zombie!\n");
+				
 					// Found one.
 					acquire(&p->common->lock);
 					p->common->count--;
@@ -383,8 +364,8 @@ int twait(int tid)
 					return tid;
 				}		
 				else{
-					// wait for thread to exit
-				  //cprintf("I found the tid and I go to sleep!\n");
+				
+   				  // wait for thread to exit
 				  sleep(proc, &ptable.lock);  
 	
 				}	
@@ -439,28 +420,35 @@ exit(void)
 
   acquire(&ptable.lock);
 
-  // Pass abandoned children to init.
+  // Parent might be sleeping in wait().
+  wakeup1(proc->parent);
+  
+  // Find other threads in current process
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->mainThread == proc->mainThread){
-        // Parent might be sleeping in wait().
-	  p->state = ZOMBIE;	
-      wakeup1(p->parent);
+       
+	  if( p->common == &p->threadcommon )
+		p->state = TZOMBIE;	
+	  else
+		p->state = ZOMBIE;	
+    
+    }
+  }
+
+  // Pass abandoned children to init.
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->parent == proc) { 
+      
+	  p->parent = initproc;
+	  
+      if(p->state == ZOMBIE)
+        wakeup1(initproc);
+	 
     }
   }
   
-
-
-  // Pass abandoned children to init.
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->parent == proc) { //|| p->mainThread == proc
-      p->parent = initproc;
-      if(p->state == ZOMBIE)
-        wakeup1(initproc);
-    }
-  }
-
   // Jump into the scheduler, never to return.
-  proc->state = ZOMBIE;
+  //proc->state = ZOMBIE;
   sched();
   panic("zombie exit");
 }
@@ -491,21 +479,25 @@ wait(void)
 
       havekids = 1;
 
-      if(p->state == ZOMBIE){
+      if( p->state == ZOMBIE || p->state == TZOMBIE ){
         // Found one.
-        acquire(&proc->common->lock);
+		if( p->state == ZOMBIE ){
+			acquire(&proc->common->lock);
+			freevm(p->common->pgdir);
+			p->common->killed = 0;
+			p->common = 0;
+			release(&proc->common->lock);
+		}
+			
 		pid = p->pid;
-        kfree(p->kstack);
-        p->kstack = 0;
-        freevm(p->common->pgdir);
+		kfree(p->kstack);
+		p->kstack = 0;
         p->state = UNUSED;
         p->pid = 0;
         p->parent = 0;
 		p->mainThread = 0;
         p->name[0] = 0;
-        p->common->killed = 0;
-        p->common = 0;
-		release(&proc->common->lock);
+                
         release(&ptable.lock);
         return pid;
       }
@@ -680,7 +672,7 @@ kill(int pid)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
 
-	  cprintf("Found proc %d and killed threads \n",pid); 
+	 // cprintf("Found proc %d and set to kill threads ",pid); 
 	   
 	  acquire(&p->common->lock);
 	  
@@ -702,12 +694,12 @@ kill(int pid)
 		 for(p2 = ptable.proc; p2 < &ptable.proc[NPROC]; p2++){ 
 
 			if ( p2->mainThread == p ){
-			   cprintf("%d ",p2->pid); 
+			  // cprintf("%d ",p2->pid); 
 			   if(p2->state == SLEEPING) 
 					p2->state = RUNNABLE;
 			}
 		 }
-		 cprintf("\n");
+		// cprintf("\n");
 		 
          release(&p->common->lock);
 		 release(&ptable.lock);
