@@ -286,12 +286,16 @@ int tfork( uint entry, uint arg, uint spbottom )
 
 int texit(void)
 {
+
+  cprintf ( "texit intermediate0 \n");
   // main thread 
   if ( proc->common == &proc->threadcommon ) 
     return -1;
   
   struct proc *p;
 
+
+  cprintf ( "texit intermediate1 \n");
 
   acquire(&ptable.lock);
 
@@ -307,6 +311,8 @@ int texit(void)
     }
   }
 
+  cprintf ( "texit intermediate2 \n");
+
   // Jump into the scheduler, never to return.
   proc->state = ZOMBIE;
   sched();
@@ -318,9 +324,11 @@ int texit(void)
 
 int twait(int pid)
 {
+
+  
   /* int* ip;  */
 
-  /* if (getuserint(1, ip)==-1) { return -1;} */
+  /* if (getuserint(1, ip)s==-1) { return -1;} */
   /* int tid = *ip; */
 
   /* if ( tid == proc->parent ) { return -1; } */

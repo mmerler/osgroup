@@ -42,14 +42,16 @@ int
 sys_texit(void)
 {
   // HW3 TODO
-  return 0;
+  return texit();
 }
 
 int
-sys_twait(int tid)
+sys_twait(void)
 {
   // HW3 TODO
-  return 0;
+  int tid;
+  if ( getuserint(0, &tid) == -1 )
+  return twait(tid);
 }
 
 int
