@@ -230,7 +230,15 @@ fork(void)
   // Make sure the page table lock is unlocked.
   initrwlock(&np->common->pglock);
 
-  np->parent = proc;
+  
+  if(proc->common == &proc->threadcommon)
+	 np->parent = proc; 
+  else
+     np->parent = proc->mainThread;
+    
+  np->mainThread = np;
+  
+  
   safestrcpy(np->name, proc->name, sizeof(proc->name));
   np->state = RUNNABLE;
 
@@ -274,7 +282,13 @@ int tfork( uint entry, uint arg, uint spbottom )
   // np->tf->cs
 
   
-  np->parent = proc;
+  np->parent = proc->parent;
+  
+  if(proc->common == &proc->threadcommon)
+	np->mainThread = proc;
+  else
+	np->mainThread = proc->mainThread;
+  
   safestrcpy(np->name, proc->name, sizeof(proc->name));
   np->state = RUNNABLE;
 
@@ -287,7 +301,7 @@ int tfork( uint entry, uint arg, uint spbottom )
 int texit(void)
 {
 
-  cprintf ( "texit intermediate0 \n");
+  //cprintf ( "texit intermediate0 \n");
   // main thread 
   if ( proc->common == &proc->threadcommon ) 
     return -1;
@@ -295,7 +309,7 @@ int texit(void)
   struct proc *p;
 
 
-  cprintf ( "texit intermediate1 \n");
+  //cprintf ( "texit intermediate1 \n");
 
   acquire(&ptable.lock);
 
@@ -311,7 +325,7 @@ int texit(void)
     }
   }
 
-  cprintf ( "texit intermediate2 \n");
+  //cprintf ( "texit intermediate2 \n");
 
   // Jump into the scheduler, never to return.
   proc->state = ZOMBIE;
@@ -322,25 +336,65 @@ int texit(void)
 
 }
 
-int twait(int pid)
+int twait(int tid)
 {
 
+  cprintf("I entered wait\n");
+
+  struct proc *p;
+  int found = 0;
   
-  /* int* ip;  */
+  acquire(&ptable.lock);
 
-  /* if (getuserint(1, ip)s==-1) { return -1;} */
-  /* int tid = *ip; */
-
-  /* if ( tid == proc->parent ) { return -1; } */
-
+  // Scan through table looking if tid is a main thread
+  for(;;){
+	for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
   
-
-  /* return -1; */
-
-
+		if( p->pid == tid ) {
+		
+			found = 1;
+			
+			if( p->common == &p->threadcommon) {
+				cprintf("I found the tid and it was a main thread!\n");
+				release(&ptable.lock);
+				return -1;
+			}
+			else{
+				if(p->state == ZOMBIE){
+					// Found one.
+					acquire(&p->common->lock);
+					p->common->count--;
+					release(&p->common->lock);
+					
+					tid = p->pid;
+					kfree(p->kstack);
+					p->kstack = 0;
+					p->state = UNUSED;
+					p->pid = 0;
+					p->parent = 0;
+					p->name[0] = 0;
+					release(&ptable.lock);
+					return tid;
+				}		
+				else{
+					// wait for thread to exit
+					cprintf("I found the tid and I go to sleep!\n");
+					sleep(proc, &ptable.lock);  
+	
+				}	
+		    }
+	    }
+    }
+  }
+  
+  // if it did not find the thread
+  if( !found )
+     return -1;
+  
   return 0;
 }
 
+  
 
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state

@@ -50,7 +50,10 @@ sys_twait(void)
 {
   // HW3 TODO
   int tid;
-  if ( getuserint(0, &tid) == -1 ) { return -1;}
+  
+  if ( getuserint(0, &tid) == -1 )
+     return -1;
+	 
   return twait(tid);
 }
 
@@ -86,8 +89,8 @@ sys_kill(void)
 int
 sys_getpid(void)
 {
-  if( proc->common == proc->parent->common )
-     return proc->parent->pid;
+  if( proc->common != &proc->threadcommon )
+     return proc->mainThread->pid;
 
   return proc->pid;
 }

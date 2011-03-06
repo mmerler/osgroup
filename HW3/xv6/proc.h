@@ -79,6 +79,7 @@ struct proc {
   enum procstate state; // Process state
   volatile int pid; // Process ID
   struct proc *parent; // Parent process
+  struct proc *mainThread; // Main thread
   struct trapframe *tf; // Trap frame for current syscall
   struct context *context; // Switch here to run process
   void *chan; // If non-zero, sleeping on chan
