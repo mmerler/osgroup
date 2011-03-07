@@ -45,6 +45,9 @@ initrwlock(struct rwlock *m)
 void
 destroyrwlock(struct rwlock *m)
 {
+	//As far a I know, we don't need anything hear since we
+	//didn't use kalloc. 
+
 	/*kfree ((void *) m->mutex1);
 	kfree ((void *) m->mutex2);
 	kfree ((void *) m->mutex3);
