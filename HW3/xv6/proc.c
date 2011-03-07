@@ -462,7 +462,7 @@ int
 wait(void)
 {
 
-  cprintf("Process %d invoked wait()\n",proc->pid);
+  //cprintf("Process %d invoked wait()\n",proc->pid);
 
   struct proc *p;
   int havekids, pid;
@@ -481,7 +481,7 @@ wait(void)
       
       havekids = 1;
 	  
-	  cprintf("Parent %d found child %d\n",proc->pid,p->pid);
+	  //cprintf("Parent %d found child %d\n",proc->pid,p->pid);
 
 	  // found a main thread being ZOMBIE
       if( p->state == ZOMBIE ){ 
@@ -520,7 +520,7 @@ wait(void)
 
     // No point waiting if we don't have any children.
     if(!havekids || proc->common->killed){
-	  cprintf("Error wait on %d HK %d PCK %d\n",proc->pid, havekids, proc->common->killed);
+	  //cprintf("Error wait on %d HK %d PCK %d\n",proc->pid, havekids, proc->common->killed);
       release(&ptable.lock);
       return -1;
     }
@@ -692,7 +692,7 @@ kill(int pid)
 	  
 	  // if it is not a main thread, return -1
       if ( p->common != &p->threadcommon ){
-	     cprintf("wait it was not a main thread!\n");
+	     //cprintf("wait it was not a main thread!\n");
 	     release(&p->common->lock);
 		 release(&ptable.lock);
 	     return -1; 
