@@ -8,7 +8,9 @@
 #define OP_WRITEUNLOCK  4
 #define OP_DESTROY      5
 
-struct rwlock {
-// Fill your rwlock here
+struct rwlock 
+{
+	int readcount, writecount, wantsR;
+	struct spinlock mutex1, mutex2, mutex3, w, r;
 };
 
