@@ -78,7 +78,9 @@ pschk()
       continue;
 
     count ++;
-
+	
+	//cprintf("Pcount : %d (added %d, state %d)\n",count,p->pid,p->state);
+	
     if (p->state == ZOMBIE || p->state == TZOMBIE) {
       release(&ptable.lock);
       return -1;
@@ -232,9 +234,11 @@ fork(void)
 
   
   if(proc->common == &proc->threadcommon)
-	 np->parent = proc; 
+  	 np->parent = proc; 
   else
      np->parent = proc->mainThread;
+	 
+ /// cprintf("Created p %d with parent %d\n",np->pid,np->parent->pid);
     
   np->mainThread = np;
   np->common->count = 1;
@@ -284,6 +288,8 @@ int tfork( uint entry, uint arg, uint spbottom )
 
   np->mainThread = proc->mainThread;
   
+///  cprintf("Created p %d with parent %d\n",np->pid,np->parent->pid);
+  
   safestrcpy(np->name, proc->name, sizeof(proc->name));
   np->state = RUNNABLE;
 
@@ -296,29 +302,16 @@ int tfork( uint entry, uint arg, uint spbottom )
 int texit(void)
 {
 
-  //cprintf ( "texit intermediate0 \n");
   // main thread 
   if ( proc->common == &proc->threadcommon ) 
     return -1;
-  
-  struct proc *p;
 
   acquire(&ptable.lock);
-
-  // Parent might be sleeping in wait().
+  
   wakeup1(proc->mainThread);
-
-  // Pass abandoned children to init.
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->parent == proc){
-      p->parent = initproc;
-      if(p->state == ZOMBIE)
-        wakeup1(initproc);
-    }
-  }
-
+  
   // Jump into the scheduler, never to return.
-  proc->state = ZOMBIE;
+  proc->state = TZOMBIE;
   sched();
   panic("zombie exit");
 
@@ -346,7 +339,7 @@ int twait(int tid)
 				return -1;
 			}
 			else{
-				if(p->state == ZOMBIE){
+				if( p->state == TZOMBIE ){
 				
 					// Found one.
 					acquire(&p->common->lock);
@@ -358,8 +351,10 @@ int twait(int tid)
 					p->kstack = 0;
 					p->state = UNUSED;
 					p->pid = 0;
+					p->mainThread = 0;
 					p->parent = 0;
 					p->name[0] = 0;
+									
 					release(&ptable.lock);
 					return tid;
 				}		
@@ -422,18 +417,25 @@ exit(void)
 
   // Parent might be sleeping in wait().
   wakeup1(proc->parent);
+  //wakeup1(proc->mainThread);
+  
+  //cprintf("Exit porc %d, threads ",proc->mainThread->pid);
   
   // Find other threads in current process
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->mainThread == proc->mainThread){
        
-	  if( p->common == &p->threadcommon )
+	  if( p->common != &p->threadcommon )
 		p->state = TZOMBIE;	
 	  else
 		p->state = ZOMBIE;	
+		
+	//  cprintf(" %d(%d)",p->pid, p->state);
     
     }
   }
+  
+ // cprintf("\n");
 
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
@@ -449,6 +451,7 @@ exit(void)
   
   // Jump into the scheduler, never to return.
   //proc->state = ZOMBIE;
+  
   sched();
   panic("zombie exit");
 }
@@ -458,63 +461,74 @@ exit(void)
 int
 wait(void)
 {
-  
-  //  cprintf("I entered wait\n");
+
+  cprintf("Process %d invoked wait()\n",proc->pid);
 
   struct proc *p;
   int havekids, pid;
   
   acquire(&ptable.lock);
-  
+   
   for(;;){
+  
     // Scan through table looking for zombie children.
     havekids = 0;
+	
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->parent != proc) 
+     
+	 if(p->parent != proc) 
         continue;
       
-      
-      if(p->common != &p->threadcommon )
-		continue;
-
       havekids = 1;
+	  
+	  cprintf("Parent %d found child %d\n",proc->pid,p->pid);
 
-      if( p->state == ZOMBIE || p->state == TZOMBIE ){
-        // Found one.
-		if( p->state == ZOMBIE ){
-			acquire(&proc->common->lock);
-			freevm(p->common->pgdir);
-			p->common->killed = 0;
-			p->common = 0;
-			release(&proc->common->lock);
-		}
-			
+	  // found a main thread being ZOMBIE
+      if( p->state == ZOMBIE ){ 
+	  
+		acquire(&p->common->lock);
+		freevm(p->common->pgdir);
+		p->common->killed = 0;
+		release(&p->common->lock);
+		p->common = 0;
+		
 		pid = p->pid;
-		kfree(p->kstack);
-		p->kstack = 0;
-        p->state = UNUSED;
-        p->pid = 0;
-        p->parent = 0;
-		p->mainThread = 0;
-        p->name[0] = 0;
-                
-        release(&ptable.lock);
+	
+		// loop to find other threads in same process 
+		struct proc *p2;
+		for(p2 = ptable.proc; p2 < &ptable.proc[NPROC]; p2++){
+		   if(p2->mainThread == p){
+		        //acquire(&p2->common->lock);
+				//p2->common->count--;	
+				//release(&p2->common->lock);
+				kfree(p2->kstack);
+				p2->kstack = 0;
+				p2->state = UNUSED;
+				p2->pid = 0;
+				p2->parent = 0;
+				p2->mainThread = 0;
+				p2->name[0] = 0; 
+			}		
+        }
+			
+///		cprintf("wait returning %d\n",pid);	
+		release(&ptable.lock);
         return pid;
       }
     }
+	
 
     // No point waiting if we don't have any children.
     if(!havekids || proc->common->killed){
+	  cprintf("Error wait on %d HK %d PCK %d\n",proc->pid, havekids, proc->common->killed);
       release(&ptable.lock);
-      //release(&proc->common->lock);
       return -1;
     }
-
+	
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
     sleep(proc, &ptable.lock);  //DOC: wait-sleep
   }
-  
-  //release(&proc->common->lock);
+
 
 }
 
@@ -672,7 +686,7 @@ kill(int pid)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
 
-	 // cprintf("Found proc %d and set to kill threads ",pid); 
+	///  cprintf("Found proc %d and set to kill threads ",pid); 
 	   
 	  acquire(&p->common->lock);
 	  
@@ -694,12 +708,12 @@ kill(int pid)
 		 for(p2 = ptable.proc; p2 < &ptable.proc[NPROC]; p2++){ 
 
 			if ( p2->mainThread == p ){
-			  // cprintf("%d ",p2->pid); 
+		///	   cprintf("%d ",p2->pid); 
 			   if(p2->state == SLEEPING) 
 					p2->state = RUNNABLE;
 			}
 		 }
-		// cprintf("\n");
+	///	 cprintf("\n");
 		 
          release(&p->common->lock);
 		 release(&ptable.lock);
