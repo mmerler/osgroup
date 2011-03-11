@@ -1,0 +1,13 @@
+xv6...
+
+cpu0: starting xv6
+
+lapicinit: 1 0xfee00000
+cpu1: starting
+init: starting sh
+$ cpu0: starting
+Spurious IDE interrupt.
+hw4-test-ast
+getaffinity failed or inconsistent.
+
+$ 
