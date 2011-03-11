@@ -5,6 +5,7 @@
 #include "mmu.h"
 #include "proc.h"
 
+
 int
 sys_fork(void)
 {
@@ -88,37 +89,96 @@ sys_uptime(void)
   return xticks;
 }
 
+ // for HW4
 int
 sys_nice(void)
 {
-	// To be implemented.
-	return 0;
+   int newP, incr;
+
+   if ( argint(0, &incr) == -1 ) {
+      cprintf("Could not read incr\n");
+      return -1;
+   }
+
+   newP = proc->priority + incr;
+   
+   if(newP >= 0 && newP < 4) 
+	  proc->priority  = newP;
+   else{
+      cprintf("Ivalid incr value, would set priority out of valid ramge\n");
+	  return -1;
+   }
+	  
+   return 0;  
 }
 
 int
 sys_getpriority(void)
 {
-	// To be implemented.
-	return 0;
+    int pid;
+	if ( argint(0, &pid) == -1 ) {
+      cprintf("Could not read pid\n");
+      return -1;
+    }
+  
+	return getpriority(pid);
 }
 
 int
 sys_setpriority(void)
 {
-	// To be implemented.
-	return -1;
+
+  int pid, new_priority;
+
+  if ( argint(0, &pid) == -1 ) {
+      cprintf("Could not read pid\n");
+      return -1;
+  }
+  
+  if ( argint(1, &new_priority) == -1 ) {
+      cprintf("Could not read new_priority\n");
+      return -1;
+  }
+
+  if( new_priority < 0 || new_priority > 4){
+       cprintf("Invalid new_priority value\n");  
+       return -1;   
+  }
+
+  return setpriority(pid,new_priority);
 }
 
 int
 sys_getaffinity(void)
 {
-	// To be implemented.
-	return 0;
+    int pid;
+	
+	if ( argint(0, &pid) == -1 ) {
+      cprintf("Could not read pid\n");
+      return -1;
+    }
+	
+	return getaffinity(pid);
 }
 
 int
 sys_setaffinity(void)
 {
-	// To be implemented.
-	return 0;
+  int pid, new_affinity;
+
+  if ( argint(0, &pid) == -1 ) {
+      cprintf("Could not read pid\n");
+      return -1;
+  }
+  
+  if ( argint(1, &new_affinity) == -1 ) {
+      cprintf("Could not read new_affinity\n");
+      return -1;
+  }
+
+  return setaffinity(pid,new_affinity);
 }
+
+
+
+

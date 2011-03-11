@@ -132,6 +132,9 @@ userinit(void)
   p->cwd = namei("/");
 
   p->state = RUNNABLE;
+  
+  p->priority = 0;
+  p->affinity = -1;
 }
 
 // Grow current process's memory by n bytes.
@@ -175,6 +178,10 @@ fork(void)
   np->sz = proc->sz;
   np->parent = proc;
   *np->tf = *proc->tf;
+  
+  // priority and affinity
+  np->affinity = -1;
+  np->priority = proc->priority;
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -438,3 +445,96 @@ kill(int pid)
   return -1;
 }
 
+
+int getpriority(int pid){
+
+  struct proc *p;
+  int prio = -1;
+
+  acquire(&ptable.lock);
+ 
+  // Scan through table looking for the process with the specified pid
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->pid == pid){
+	      prio = p->priority;
+		  break; 
+	  }
+  }      	  
+	  
+  release(&ptable.lock); 
+  
+  return prio;
+  
+}
+
+int setpriority(int pid,int new_priority){
+
+  struct proc *p;
+  int found = -1;
+
+  acquire(&ptable.lock);
+  // Scan through table looking for the process with the specified pid
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->pid == pid){
+	      p->priority = new_priority;
+		  found = 0;
+		  break; 
+	  }
+  }      	  
+  release(&ptable.lock); 
+  
+  return found;
+  
+}
+
+
+int setaffinity(int pid,int new_affinity){
+
+  struct proc *p;
+  int i, found = -1;
+  
+  // check validity of new_affinity
+  for(i=0; i<=cpunum(); i++){
+      if(new_affinity != -1 && new_affinity != i){
+	     cprintf("Invalid new_affinity value!\n");
+	     return -1;
+	  }
+  }
+    
+
+  acquire(&ptable.lock);
+  // Scan through table looking for the process with the specified pid
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->pid == pid){
+	      p->affinity = new_affinity;
+		  found = 0;
+		  break; 
+	  }
+  }      	  
+  release(&ptable.lock); 
+  
+  return 0;
+  
+}
+
+
+int getaffinity(int pid){
+
+  struct proc *p;
+  int aff = -2;
+
+  acquire(&ptable.lock);
+ 
+  // Scan through table looking for the process with the specified pid
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->pid == pid){
+	      aff = p->affinity;
+		  break; 
+	  }
+  }      	  
+	  
+  release(&ptable.lock); 
+  
+  return ( (aff != -2) ? aff : -1 );
+  
+}
