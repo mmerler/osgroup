@@ -77,6 +77,23 @@ struct proc {
   int affinity;
 };
 
+// START HW4
+// process run queue
+typedef struct queue {
+  int pid;
+  struct queue *next; 
+}proc_queue;
+
+// fucntions to add, remove and  print elements in queue
+int enqueue( int pid, int prio );
+int dequeue( int prio );
+int print_queue( int prio );
+int remove_from_queue( int pid, int prio); 
+// END HW4
+
+
+ 
+
 // Process memory is laid out contiguously, low addresses first:
 //   text
 //   original data and bss
