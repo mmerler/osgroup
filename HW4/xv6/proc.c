@@ -229,7 +229,7 @@ fork(void)
   np->priority = proc->priority;
   
   acquire(&runqueue.lock); 
- // cprintf("enqueuing forked process %d to queue %d\n", np->pid, np->priority);
+  cprintf("enqueuing forked process %d to queue %d, in cpu %d\n", np->pid, np->priority, cpu->id);
   enqueue( np->pid , np->priority );  //
  // print_queue( np->priority );
   release(&runqueue.lock); 
@@ -386,8 +386,11 @@ scheduler(void)
       proc = p;
       switchuvm(p);
       p->state = RUNNING;
-	  
+	   
 	  // START HW4 
+	//  for(i=0; i<NQUEUE; i++)
+	  //   print_queue( i);
+	  //cprintf("scheduling proc %d with priority %d\n",p->pid, p->priority);
 	  remove_from_queue( p->pid, p->priority );  
 	  release(&runqueue.lock); 
 	  // END HW4
@@ -397,6 +400,16 @@ scheduler(void)
 	  
       // Process is done running for now.
       // It should have changed its p->state before coming back.
+	  
+	  // START HW4 
+	  if( p->state == RUNNABLE ){
+	     acquire(&runqueue.lock); 
+		 remove_from_queue( p->pid, p->priority );
+		 enqueue( p->pid, p->priority ); 
+		 release(&runqueue.lock); 
+	  }
+	  // END HW4
+	  
       proc = 0;
     }
 	
@@ -599,9 +612,9 @@ int setpriority(int pid,int new_priority){
 	  
 		 acquire(&runqueue.lock);
 		 remove_from_queue( p->pid, p->priority );
-		  
+		 cprintf("set priority of proc %d from %d to %d\n", p->pid,p->priority, new_priority); 
 		 p->priority = new_priority;
-		
+		 	
          release(&runqueue.lock);
 		  
 		 found = 0;
