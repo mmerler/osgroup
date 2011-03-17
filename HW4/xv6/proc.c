@@ -468,7 +468,7 @@ forkret(void)
 void
 sleep(void *chan, struct spinlock *lk)
 {
-    cprintf("Entered sleep proc %d state %d\n", proc->pid, proc->state);
+   // cprintf("Entered sleep proc %d state %d\n", proc->pid, proc->state);
 
   if(proc == 0)
     panic("sleep");
@@ -619,16 +619,20 @@ int setpriority(int pid,int new_priority){
 int setaffinity(int pid,int new_affinity){
 
   struct proc *p;
-  int i, found = -1;
+  int i, found = 0;
   
   // check validity of new_affinity
   for(i=0; i<=cpunum(); i++){
-      if(new_affinity != i){
-	     cprintf("Invalid new_affinity value!\n");
-	     return -1;
+      if(new_affinity == i){
+	     found = -1;
+		 break;
 	  }
   }
     
+  if( !found ){
+    cprintf("Invalid new_affinity value!\n");
+	return -1;  
+  }
 
   acquire(&ptable.lock);
   // Scan through table looking for the process with the specified pid
@@ -641,7 +645,7 @@ int setaffinity(int pid,int new_affinity){
   }      	  
   release(&ptable.lock); 
   
-  return 0;
+  return found;
   
 }
 
