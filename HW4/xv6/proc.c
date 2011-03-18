@@ -13,6 +13,8 @@ char *q_names[5] = {"runqueue_0","runqueue_1","runqueue_2","runqueue_3","runqueu
 struct {
   struct spinlock lock; //[NQUEUE]
   proc_queue *q[NQUEUE];
+  
+
 } runqueue;
 // END HW4
 
@@ -357,7 +359,7 @@ scheduler(void)
 	// Loop over process table looking for process to run.
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
 	   
-      if(p->state != RUNNABLE)
+      if ((p->state != RUNNABLE) || ((p->affinity != -1) && (p->affinity != cpu->id)))
         continue;
 	
 	  // START HW4 
@@ -635,11 +637,12 @@ int setaffinity(int pid,int new_affinity){
   int i, found = 0;
   
   // check validity of new_affinity
-  for(i=0; i<=cpunum(); i++){
-      if(new_affinity == i){
-	     found = -1;
-		 break;
-	  }
+  //  for(i=0; i<=cpunum(); i++){
+  for(i=0; i<ncpu; i++){
+    if(new_affinity == i){
+      found = -1;
+      break;
+    }
   }
     
   if( !found ){
