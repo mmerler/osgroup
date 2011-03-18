@@ -8,3 +8,7 @@
 #define NDEV         10  // maximum major device number
 #define ROOTDEV       1  // device number of file system root disk
 #define PHYSTOP  0x1000000 // use phys mem up to here as free pool
+
+// START HW4
+#define NQUEUE   5 // number of run queues for processes
+// END HW4
