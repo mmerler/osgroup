@@ -11,6 +11,6 @@
 struct rwlock 
 {
 	int readcount, writecount, wantsR;
-	struct spinlock mutex1, mutex2, mutex3, w, r;
+	volatile long mutex1, mutex2, mutex3, w, r;
 };
 

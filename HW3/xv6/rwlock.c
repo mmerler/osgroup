@@ -15,12 +15,35 @@
 	favors the writer presented by Courtois et al. in "Concurrent 
 	Control with 'Readers' and 'Writers'" Communications of the ACM, 
 	Vol. 14, Number 10, Oct. 1971.
+
+	note to grader: swapped out spin locks at last minute.
 */
+
+long test_and_set(volatile long* lock)
+{
+	int old;
+	asm
+	(
+		"xchgl %0, %1"
+		: "=r"(old), "+m"(*lock) // output
+		: "0"(1) // input
+		: "memory" // can clobber anything in memory
+	);
+	return old;
+}
+
+
 void
 initrwlock(struct rwlock *m)
 {
 	m->readcount = 0;
 	m->writecount = 0;
+	//m->wantsR = 0;
+
+	m->mutex1 = 0;
+	m->mutex2 = 0;
+	m->mutex3 = 0;
+	m->wantsR = 0;
 	m->wantsR = 0;
 	
 	/*struct spinlock *mutex1 = (struct spinlock *) kalloc ();
@@ -29,11 +52,11 @@ initrwlock(struct rwlock *m)
 	struct spinlock *r = (struct spinlock *) kalloc ();
 	struct spinlock *w = (struct spinlock *) kalloc ();*/
 
-	initlock (&m->mutex1, "mutex1");
+	/*initlock (&m->mutex1, "mutex1");
 	initlock (&m->mutex2, "mutex2");
 	initlock (&m->mutex3, "mutex3");
 	initlock (&m->w, "w");
-	initlock (&m->r, "r");
+	initlock (&m->r, "r");*/
 
 	/*m->mutex1 = mutex1;
 	m->mutex2 = mutex2;
@@ -60,18 +83,18 @@ destroyrwlock(struct rwlock *m)
 void
 readlock(struct rwlock *m)
 {
-	acquire (&m->mutex3); //mutex3 ensures that a reader has exlusive
+	while (test_and_set (&m->mutex3)) yield (); //mutex3 ensures that a reader has exlusive
 			    // access from acquire (m->r) to release (m->r)
 			    // inclusive. In other words, only one process 
 			    // is ever waiting at r.
-		acquire (&m->r);
-			acquire(&m->mutex1);
+		while (test_and_set (&m->r)) yield ();
+			test_and_set(&m->mutex1);
 				m->readcount = m->readcount + 1;
 				if(m->readcount == 1) 
-					acquire(&m->w); //stops writers
-			release(&m->mutex1);
-		release (&m->r);
-	//if (m->wantsR == 1) yield ();
+					while (test_and_set(&m->w)) yield (); //stops writers
+			m->mutex1 = 0;
+		m->r = 0;
+	if (m->wantsR == 1) yield ();
 	/*
 		This is my addition to the Courtois et al. solution. I am
 		not satisified that, while a writer is waiting at r, a 
@@ -94,45 +117,45 @@ readlock(struct rwlock *m)
 		other it causes a minor preformance loss. Either way, not 
 		a disaster.
 	*/
-	release (&m->mutex3);
+	m->mutex3 = 0;
 }
 
 void
 readunlock(struct rwlock *m)
 {
-	acquire (&m->mutex1);//ensures that only one reader is in this section
+	while (test_and_set (&m->mutex1)) yield ();//ensures that only one reader is in this section
 		m->readcount = m->readcount - 1;
 		if (m->readcount == 0)
-			release (&m->w);
-	release (&m->mutex1);
+			m->w = 0;
+	m->mutex1 = 0;
 }
 
 void
 writelock(struct rwlock *m)
 {
 
-	acquire (&m->mutex2);//ensures that only one writer is in this section
+	while (test_and_set (&m->mutex2)) yield ();//ensures that only one writer is in this section
 		m->writecount = m->writecount + 1;
 		if (m->writecount == 1)
 		{
-			//m->wantsR = 1;
-			acquire(&m->r); //stops new readers from entering 
+			m->wantsR = 1;
+			while (test_and_set (&m->r)) yield (); //stops new readers from entering 
 					//the critical section.
-			//m->wantsR = 0;
+			m->wantsR = 0;
 		}
-	release (&m->mutex2);
-	acquire (&m->w);
+	m->mutex2 = 0;
+	while (test_and_set (&m->w)) yield ();
 }
 
 void
 writeunlock(struct rwlock *m)
 {
-	release (&m->w);
-	acquire (&m->mutex2);
+	m->w = 0;
+	while (test_and_set (&m->mutex2)) yield ();
 		m->writecount = m->writecount - 1;
-		if (m->writecount == 0) release (&m->r);
-
-	release (&m->mutex2);
+		if (m->writecount == 0) 
+			m->r = 0;
+	m->mutex2 = 0;
 }
 
 int
