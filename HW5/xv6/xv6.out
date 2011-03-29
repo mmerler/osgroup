@@ -1,0 +1,17 @@
+xv6...
+
+cpu0: starting xv6
+
+lapicinit: 1 0xfee00000
+cpu1: starting
+init: starting sh
+$ cpu0: starting
+Spurious IDE interrupt.
+e 
+hw5-test-page
+
+exec e failed
+$ # of free pages before fork() = 3612
+# of free pages after fork() = 3446
+Too many pages allocated when forking.
+$ $ 
