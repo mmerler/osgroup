@@ -68,7 +68,7 @@ walkpgdir(pde_t *pgdir, const void *va, int create)
 // Create PTEs for linear addresses starting at la that refer to
 // physical addresses starting at pa. la and size might not
 // be page-aligned.
-static int
+int
 mappages(pde_t *pgdir, void *la, uint size, uint pa, int perm)
 {
   char *a = PGROUNDDOWN(la);
@@ -78,8 +78,8 @@ mappages(pde_t *pgdir, void *la, uint size, uint pa, int perm)
     pte_t *pte = walkpgdir(pgdir, a, 1);
     if(pte == 0)
       return 0;
-    if(*pte & PTE_P)
-      panic("remap");
+    /* if(*pte & PTE_P) */
+    /*        panic("remap"); */
     *pte = pa | perm | PTE_P;
     if(a == last)
       break;
@@ -279,16 +279,18 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 void
 freevm(pde_t *pgdir)
 {
-  uint i;
+  cprintf("freevm called \n");
+  
+  //uint i;
 
   if(!pgdir)
     panic("freevm: no pgdir");
-  deallocuvm(pgdir, USERTOP, 0);
-  for(i = 0; i < NPDENTRIES; i++){
-    if(pgdir[i] & PTE_P)
-      kfree((void *) PTE_ADDR(pgdir[i]));
-  }
-  kfree((void *) pgdir);
+  //deallocuvm(pgdir, USERTOP, 0);
+  /* for(i = 0; i < NPDENTRIES; i++){ */
+  /*   if(pgdir[i] & PTE_P) */
+  /*     kfree((void *) PTE_ADDR(pgdir[i])); */
+  /* } */
+  /* kfree((void *) pgdir); */
 }
 
 // Given a parent process's page table, create a copy
@@ -307,12 +309,14 @@ copyuvm(pde_t *pgdir, uint sz)
       panic("copyuvm: pte should exist\n");
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present\n");
-    pa = PTE_ADDR(*pte);
+
+    pa = PTE_ADDR(*pte);  
     if(!(mem = kalloc()))
+       goto bad;
+     memmove(mem, (char *)pa, PGSIZE);
+     if(!mappages(d, (void *)i, PGSIZE, PADDR(mem), PTE_W|PTE_U))
       goto bad;
-    memmove(mem, (char *)pa, PGSIZE);
-    if(!mappages(d, (void *)i, PGSIZE, PADDR(mem), PTE_W|PTE_U))
-      goto bad;
+    
   }
   return d;
 
@@ -320,4 +324,38 @@ bad:
   freevm(d);
   return 0;
 }
+
+// copy and write version of copyuvm
+pde_t*
+copyandwriteuvm(pde_t *pgdir, uint sz)
+{
+  pde_t *d = setupkvm();
+  pte_t *pte;
+  uint pa, i;
+
+  if(!d) return 0;
+  for(i = 0; i < sz; i += PGSIZE){
+    if(!(pte = walkpgdir(pgdir, (void *)i, 0)))
+      panic("copyuvm: pte should exist\n");
+    if(!(*pte & PTE_P))
+      panic("copyuvm: page not present\n");
+
+    //*pte = *pte & ~0x002;
+    //    *pte = *pte & ~PTE_W;
+
+    
+    pa = PTE_ADDR(*pte);  
+
+    if(!mappages(d, (void *)i, PGSIZE, pa, PTE_U))
+      goto bad;
+
+
+  }
+  return d;
+
+bad:
+  freevm(d);
+  return 0;
+}
+
 

@@ -158,6 +158,9 @@ growproc(int n)
 int
 fork(void)
 {
+  
+  //cprintf("fork fork fork \n"); 
+
   int i, pid;
   struct proc *np;
 
@@ -166,7 +169,7 @@ fork(void)
     return -1;
 
   // Copy process state from p.
-  if(!(np->pgdir = copyuvm(proc->pgdir, proc->sz))){
+  if(!(np->pgdir = copyandwriteuvm(proc->pgdir, proc->sz))){
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;
@@ -196,6 +199,9 @@ fork(void)
 void
 exit(void)
 {
+
+  cprintf("Exiting pid = %x ",proc->pid);
+
   struct proc *p;
   int fd;
 
@@ -238,6 +244,8 @@ exit(void)
 int
 wait(void)
 {
+  cprintf("wait called \n");
+
   struct proc *p;
   int havekids, pid;
 
@@ -267,6 +275,7 @@ wait(void)
 
     // No point waiting if we don't have any children.
     if(!havekids || proc->killed){
+      cprintf("havekids = %d, proc->killed = %d \n",havekids, proc->killed );
       release(&ptable.lock);
       return -1;
     }

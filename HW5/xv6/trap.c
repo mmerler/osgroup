@@ -44,6 +44,14 @@ trap(struct trapframe *tf)
     return;
   }
 
+  pte_t *pte;
+  uint pa, i;
+  char *mem;
+  uint r,m;
+  pde_t *pde;
+  pte_t *pgtab;
+
+
   switch(tf->trapno){
   case T_IRQ0 + IRQ_TIMER:
     if(cpu->id == 0){
@@ -72,7 +80,56 @@ trap(struct trapframe *tf)
             cpu->id, tf->cs, tf->eip);
     lapiceoi();
     break;
-   
+  case T_PGFLT:      
+
+    
+
+    //asm("\t movl %%cr2,%0" : "=r"(i));
+    i = rcr2();
+
+
+    //    cprintf("page fault handler entry = %x, prod->pid =%x \n", i, proc->pid);
+
+    // having issues linking walkpgdir
+    // here's a copy-paste
+    pde = &proc->pgdir[PDX((void*)i)];
+    if(*pde & PTE_P){
+      pgtab = (pte_t*) PTE_ADDR(*pde);
+    } else if(!(r = (uint) kalloc()))
+      panic("page fault handler : this should never happen \n");
+    else {
+      pgtab = (pte_t*) r;
+      // Make sure all those PTE_P bits are zero.
+      memset(pgtab, 0, PGSIZE);
+      // The permissions here are overly generous, but they can
+      // be further restricted by the permissions in the page table 
+      // entries, if necessary.
+      *pde = PADDR(r) | PTE_P | PTE_W | PTE_U;
+    }
+    if ( ! (pte =  &pgtab[PTX((void*)i)]))
+      panic("page fault handler: pte should exist\n");
+    
+    
+
+    //    if(!(pte = walkpgdir(proc->pgdir, (void *)i, 0)))
+    //  panic("page fault handler: pte should exist\n");
+
+    pa = PTE_ADDR(*pte);  
+    if(!(mem = kalloc()))
+      panic("page fault handler : page fault\n");
+    memmove(mem, (char *)pa, PGSIZE);
+    if(!mappages(proc->pgdir, (void *)i, PGSIZE, PADDR(mem), PTE_W|PTE_U))
+      panic("page fault handler : page fault\n");
+
+    // tLB flush
+    //asm("\t movl %%cr3,%0" : "=r"(m));
+    //asm ("\t movl %0,%%cr3": :"r" (m));
+    m = rcr3(); 
+    lcr3(m);
+
+
+    break;
+
   default:
     if(proc == 0 || (tf->cs&3) == 0){
       // In kernel, it must be our mistake.

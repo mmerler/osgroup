@@ -162,8 +162,13 @@ void            freevm(pde_t*);
 void            inituvm(pde_t*, char*, uint);
 int             loaduvm(pde_t*, char*, struct inode *, uint, uint);
 pde_t*          copyuvm(pde_t*,uint);
+pde_t*          copyandwriteuvm(pde_t*,uint);
 void            switchuvm(struct proc*);
 void            switchkvm();
+//pte_t * walkpgdir(pde_t*, void*, int );
+//pde_t*         walkpgdir();
+int             mappages(pde_t*, void*, uint , uint , int );
+
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
