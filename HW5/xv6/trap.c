@@ -38,6 +38,8 @@ trap(struct trapframe *tf)
     if(proc->killed)
       exit();
     proc->tf = tf;
+    
+
     syscall();
     if(proc->killed)
       exit();
@@ -47,9 +49,12 @@ trap(struct trapframe *tf)
   pte_t *pte;
   uint pa, i;
   char *mem;
-  uint r,m;
-  pde_t *pde;
-  pte_t *pgtab;
+  char *pa2;
+
+ //uint r,m;
+
+  //pde_t *pde;
+  //  pte_t *pgtab;
 
 
   switch(tf->trapno){
@@ -84,49 +89,69 @@ trap(struct trapframe *tf)
 
     
 
+    //  pushcli(); 
+    
+    proc->tf = tf;
+
     //asm("\t movl %%cr2,%0" : "=r"(i));
     i = rcr2();
 
+    cprintf("page fault proc->pid =%d, va =%x, numfreepages = %d\n", proc->pid, i, sys_freepages() );
+   
 
-    //    cprintf("page fault handler entry = %x, prod->pid =%x \n", i, proc->pid);
-
-    // having issues linking walkpgdir
-    // here's a copy-paste
-    pde = &proc->pgdir[PDX((void*)i)];
-    if(*pde & PTE_P){
-      pgtab = (pte_t*) PTE_ADDR(*pde);
-    } else if(!(r = (uint) kalloc()))
-      panic("page fault handler : this should never happen \n");
-    else {
-      pgtab = (pte_t*) r;
-      // Make sure all those PTE_P bits are zero.
-      memset(pgtab, 0, PGSIZE);
-      // The permissions here are overly generous, but they can
-      // be further restricted by the permissions in the page table 
-      // entries, if necessary.
-      *pde = PADDR(r) | PTE_P | PTE_W | PTE_U;
-    }
-    if ( ! (pte =  &pgtab[PTX((void*)i)]))
+    if ( ! (pte = walkpgdir(proc->pgdir, (void *)i, 0)) ) 
       panic("page fault handler: pte should exist\n");
-    
+
     
 
     //    if(!(pte = walkpgdir(proc->pgdir, (void *)i, 0)))
     //  panic("page fault handler: pte should exist\n");
 
     pa = PTE_ADDR(*pte);  
+
+
+    
+
+    cprintf("trap.c : tf->eip = %x, tf->eax = %x, pa = %x \n",tf->eip, tf->eax,PADDR(pa));  
+
+    // get rid of this 
+    //*pte = *pte | PTE_W;
+    //break; 
+    // get rid of this
+
     if(!(mem = kalloc()))
       panic("page fault handler : page fault\n");
     memmove(mem, (char *)pa, PGSIZE);
+
+    cprintf("trap.c : tf->eip = %x, tf->eax = %x, new pa = %x \n",tf->eip, tf->eax,PADDR(mem));  
+
     if(!mappages(proc->pgdir, (void *)i, PGSIZE, PADDR(mem), PTE_W|PTE_U))
       panic("page fault handler : page fault\n");
 
-    // tLB flush
-    //asm("\t movl %%cr3,%0" : "=r"(m));
-    //asm ("\t movl %0,%%cr3": :"r" (m));
-    m = rcr3(); 
-    lcr3(m);
 
+    lcr3(rcr3());
+
+    pa2 = (char*)PTE_ADDR(*pte);
+    
+     cprintf("trap.c : tf->eip = %x, tf->eax = %x, pa2 = %x \n",tf->eip, tf->eax,PADDR(pa2));  
+
+    // TLB flush
+    //lcr3(PADDR(proc->pgdir));
+    
+    // lcr3(PADDR(proc->pgdir));
+    
+    // cprintf("trap.c : tf->eip = %x, tf->eax = %x, new pa = %x \n",tf->eip, tf->eax,PADDR(mem));  
+
+    //popcli();
+    //m = 2;
+
+    //lcr3(rcr3());
+
+    //cprintf("page fault proc->pid =%d, va =%x, almost done  \n", proc->pid, i );
+
+    //lapiceoi();
+
+    //    lcr3(rcr3());
 
     break;
 
@@ -148,15 +173,25 @@ trap(struct trapframe *tf)
   // Force process exit if it has been killed and is in user space.
   // (If it is still executing in the kernel, let it keep running 
   // until it gets to the regular system call return.)
-  if(proc && proc->killed && (tf->cs&3) == DPL_USER)
+  if(proc && proc->killed && (tf->cs&3) == DPL_USER) { 
+    cprintf(" exiting in trap pid = %d" , proc->pid ) ;
     exit();
-
+  }
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
-  if(proc && proc->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER)
+  if(proc && proc->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER)  { 
     yield();
+  }
 
   // Check if the process has been killed since we yielded
-  if(proc && proc->killed && (tf->cs&3) == DPL_USER)
+  if(proc && proc->killed && (tf->cs&3) == DPL_USER) { 
+    cprintf(" exiting in trap pid = %d" , proc->pid ) ;
     exit();
+  }
+  
+  if ( tf->trapno == T_PGFLT ) { 
+    cprintf("end of trap \n");
+    
+  }
+
 }

@@ -139,6 +139,8 @@ userinit(void)
 int
 growproc(int n)
 {
+
+  cprintf("grow proc \n");
   uint sz = proc->sz;
   if(n > 0){
     if(!(sz = allocuvm(proc->pgdir, sz, sz + n)))
@@ -158,8 +160,6 @@ growproc(int n)
 int
 fork(void)
 {
-  
-  //cprintf("fork fork fork \n"); 
 
   int i, pid;
   struct proc *np;
@@ -179,6 +179,7 @@ fork(void)
   np->parent = proc;
   *np->tf = *proc->tf;
 
+
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 
@@ -190,6 +191,11 @@ fork(void)
   pid = np->pid;
   np->state = RUNNABLE;
   safestrcpy(np->name, proc->name, sizeof(proc->name));
+
+  cprintf("done with fork \n");
+
+  lcr3(rcr3());
+
   return pid;
 }
 
@@ -200,7 +206,7 @@ void
 exit(void)
 {
 
-  cprintf("Exiting pid = %x ",proc->pid);
+  cprintf("Exiting pid = %d", proc->pid);
 
   struct proc *p;
   int fd;
@@ -244,13 +250,17 @@ exit(void)
 int
 wait(void)
 {
-  cprintf("wait called \n");
+  
+  cprintf("wait called for pid = %d \n", proc->pid);
 
   struct proc *p;
   int havekids, pid;
 
   acquire(&ptable.lock);
   for(;;){
+    
+    cprintf("beginning of loop \n");
+
     // Scan through table looking for zombie children.
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
@@ -258,7 +268,9 @@ wait(void)
         continue;
       havekids = 1;
       if(p->state == ZOMBIE){
-        // Found one.
+        
+	cprintf("found a zombie proc->pid = %d, p->pid = %d \n", proc->pid, p->pid);
+	// Found one.
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
@@ -269,19 +281,25 @@ wait(void)
         p->name[0] = 0;
         p->killed = 0;
         release(&ptable.lock);
-        return pid;
+	cprintf("returning proc->pid = %d \n", proc->pid);
+	
+	return pid;
       }
     }
 
     // No point waiting if we don't have any children.
     if(!havekids || proc->killed){
-      cprintf("havekids = %d, proc->killed = %d \n",havekids, proc->killed );
+      cprintf("havekids = %d , proc->killed",havekids,proc->killed);
       release(&ptable.lock);
       return -1;
     }
 
+    cprintf("going to sleep pid = %d \n", proc->pid);
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
     sleep(proc, &ptable.lock);  //DOC: wait-sleep
+    
+    cprintf("after sleep pid = %d \n", proc->pid);
+  
   }
 }
 
@@ -371,6 +389,9 @@ forkret(void)
 void
 sleep(void *chan, struct spinlock *lk)
 {
+
+  
+
   if(proc == 0)
     panic("sleep");
 
@@ -388,19 +409,30 @@ sleep(void *chan, struct spinlock *lk)
     release(lk);
   }
 
+
+
   // Go to sleep.
   proc->chan = chan;
   proc->state = SLEEPING;
+  
+  
+  
   sched();
+
+  
 
   // Tidy up.
   proc->chan = 0;
+
+  
 
   // Reacquire original lock.
   if(lk != &ptable.lock){  //DOC: sleeplock2
     release(&ptable.lock);
     acquire(lk);
   }
+
+  
 }
 
 // Wake up all processes sleeping on chan.
@@ -430,6 +462,9 @@ wakeup(void *chan)
 int
 kill(int pid)
 {
+
+  cprintf("process killed proc->pid = %d \n",proc->pid);
+
   struct proc *p;
 
   acquire(&ptable.lock);

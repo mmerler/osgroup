@@ -1,3 +1,4 @@
+
 struct buf;
 struct context;
 struct file;
@@ -63,6 +64,12 @@ void            ioapicinit(void);
 char*           kalloc(void);
 void            kfree(char*);
 void            kinit();
+void            initRefCounts();
+void            incRefCount(char* a); 
+void            decRefCount(char* a); 
+uint            getRefCount(char* a);
+int             sys_freepages();
+
 
 // kbd.c
 void            kbdintr(void);
@@ -165,7 +172,7 @@ pde_t*          copyuvm(pde_t*,uint);
 pde_t*          copyandwriteuvm(pde_t*,uint);
 void            switchuvm(struct proc*);
 void            switchkvm();
-//pte_t * walkpgdir(pde_t*, void*, int );
+pte_t * walkpgdir(pde_t*, const void*, int );
 //pde_t*         walkpgdir();
 int             mappages(pde_t*, void*, uint , uint , int );
 
