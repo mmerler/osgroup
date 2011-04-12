@@ -65,9 +65,9 @@ char*           kalloc(void);
 void            kfree(char*);
 void            kinit();
 void            initRefCounts();
-void            incRefCount(char* a); 
-void            decRefCount(char* a); 
-uint            getRefCount(char* a);
+void            incRefCount(uint a); 
+void            decRefCount(uint a); 
+uint            getRefCount(uint a);
 int             sys_freepages();
 
 

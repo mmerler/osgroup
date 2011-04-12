@@ -30,8 +30,12 @@ kinit(void)
   
   
   initlock(&kmem.lock, "kmem");
+  initlock(&refcounts.lock, "refcounts");
 
   char *p = (char*)PGROUNDUP((uint)end);
+
+  
+
   for( ; p + PGSIZE - 1 < (char*) PHYSTOP; p += PGSIZE)
     {
       kfree(p);
@@ -64,36 +68,57 @@ void initRefCounts()
 
 }
 
-void incRefCount(char* a) 
+void incRefCount(uint a) 
 {
   acquire(&refcounts.lock);
 
-  refcounts.refCountList[(uint)a/PGSIZE] = refcounts.refCountList[(uint)a/PGSIZE] + 1;  
-
-  cprintf("inc refcounts.refCountList[i] =%x, a = %x",  refcounts.refCountList[(uint)a/PGSIZE], (uint)a/PGSIZE ); 
-
-  release(&refcounts.lock);
-}
-
-void decRefCount(char* a) 
-{
-  acquire(&refcounts.lock);
-
-  refcounts.refCountList[(uint)a/PGSIZE] = refcounts.refCountList[(uint)a/PGSIZE] - 1;  
-
-  cprintf("dec refcounts.refCountList[i] =%x, a = %x",  refcounts.refCountList[(uint)a/PGSIZE], (uint)a/PGSIZE ); 
-
-  release(&refcounts.lock);
-
-}
-
-uint getRefCount(char* a)
-{
-  acquire(&refcounts.lock);
+  extern char end[];
   
-  return (uint)refcounts.refCountList[(uint)a/PGSIZE];
+  char *p = (char*)PGROUNDUP((uint)end);
+ 
+
+  uint idx = ((uint)a/PGSIZE)-((uint)p/PGSIZE);
+
+  cprintf("inc refcounts.refCountList[i] =%x, a = %x \n",  refcounts.refCountList[idx], (uint)a/PGSIZE ); 
+
+  refcounts.refCountList[idx] = refcounts.refCountList[idx] + 1;  
+
+  cprintf("inc refcounts.refCountList[i] =%x, a = %x \n",  refcounts.refCountList[idx], (uint)a/PGSIZE ); 
 
   release(&refcounts.lock);
+}
+
+void decRefCount(uint a) 
+{
+  acquire(&refcounts.lock);
+
+  extern char end[];
+  char *p = (char*)PGROUNDUP((uint)end);
+ 
+  uint idx = ((uint)a/PGSIZE)-((uint)p/PGSIZE);
+
+  refcounts.refCountList[idx] = refcounts.refCountList[idx] - 1;  
+
+  
+
+  release(&refcounts.lock);
+
+}
+
+uint getRefCount(uint a)
+{
+  acquire(&refcounts.lock);
+ 
+  extern char end[];
+  char *p = (char*)PGROUNDUP((uint)end);
+ 
+  uint idx = ((uint)a/PGSIZE)-((uint)p/PGSIZE);
+ 
+  release(&refcounts.lock);
+
+  return (uint)refcounts.refCountList[idx];
+
+  
 }
 
 

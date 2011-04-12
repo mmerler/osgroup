@@ -195,7 +195,7 @@ switchuvm(struct proc *p)
   if(p->pgdir == 0)
     panic("switchuvm: no pgdir\n");
   
-  cprintf("lcr3! proc->pid = %d, p->pid = %d \n", proc->pid, p->pid);
+  //cprintf("lcr3! proc->pid = %d, p->pid = %d \n", proc->pid, p->pid);
   lcr3(PADDR(p->pgdir));  // switch to new address space
   popcli();
 
@@ -312,13 +312,13 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
       if(pa == 0)
         panic("kfree");
       
-      /* if ( getRefCount((char*)a) == 0 ) { */
-      /* 	kfree((void *) a); */
-      /* } */
-      /* else */
-      /* 	{ */
-      /* 	  decRefCount((char*)a); */
-      /* 	} */
+      if ( getRefCount(pa) == 0 ) {
+      	//kfree((void *) a);
+      }
+      else
+      	{
+      	  decRefCount(pa);
+      	}
       *pte = 0;
     }
   }
@@ -435,12 +435,26 @@ copyandwriteuvm(pde_t *pgdir, uint sz)
     pa = PTE_ADDR(*pte);
        //cprintf(" copyandawriteuvm i = %d \n", i );
 
-    //incRefCount((char*)pa);
+    cprintf("before the next inc\n");
+
+    incRefCount(pa);
+    
     if(!mappages(d, (void *)i, PGSIZE, PADDR(pa), PTE_U))
       goto bad;
+    
+    if ( i == 0) { 
+      uint kk = getRefCount(pa);
+      cprintf ( "getRefount = %x, pa = %x", kk,pa);
+    }  
+      //
 
   }
   
+
+
+  switchuvm(proc);
+
+  //  lcr3(rcr3());
 
   //cprintf("end of copyandwriteuvm \n");
 

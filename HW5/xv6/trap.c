@@ -49,7 +49,7 @@ trap(struct trapframe *tf)
   pte_t *pte;
   uint pa, i;
   char *mem;
-  char *pa2;
+  //  char *pa2;
 
  //uint r,m;
 
@@ -89,7 +89,7 @@ trap(struct trapframe *tf)
 
     
 
-    //  pushcli(); 
+     pushcli(); 
     
     proc->tf = tf;
 
@@ -112,46 +112,38 @@ trap(struct trapframe *tf)
 
     
 
-    cprintf("trap.c : tf->eip = %x, tf->eax = %x, pa = %x \n",tf->eip, tf->eax,PADDR(pa));  
+    //    cprintf("trap.c : tf->eip = %x, tf->eax = %x, pa = %x \n",tf->eip, tf->eax,PADDR(pa));  
 
     // get rid of this 
     //*pte = *pte | PTE_W;
     //break; 
     // get rid of this
+    
+    
+    if ( getRefCount(pa) == 0 ) 
+      {
+	*pte = *pte | PTE_W; 
+      } 
+    else 
+      {
+	if(!(mem = kalloc()))
+	  panic("page fault handler : page fault\n");
+	memmove(mem, (char *)pa, PGSIZE);
+    
+	//    cprintf("trap.c : tf->eip = %x, tf->eax = %x, new pa = %x \n",tf->eip, tf->eax,PADDR(mem));  
 
-    if(!(mem = kalloc()))
-      panic("page fault handler : page fault\n");
-    memmove(mem, (char *)pa, PGSIZE);
+	if(!mappages(proc->pgdir, (void *)i, PGSIZE, PADDR(mem), PTE_W | PTE_U))
+	  panic("page fault handler : page fault\n");
 
-    cprintf("trap.c : tf->eip = %x, tf->eax = %x, new pa = %x \n",tf->eip, tf->eax,PADDR(mem));  
-
-    if(!mappages(proc->pgdir, (void *)i, PGSIZE, PADDR(mem), PTE_W|PTE_U))
-      panic("page fault handler : page fault\n");
-
+	decRefCount(pa);
+	cprintf("getRefCount(pa) = %d \n" , getRefCount(pa));
+      }
+    
+    // switchuvm(proc);
 
     lcr3(rcr3());
 
-    pa2 = (char*)PTE_ADDR(*pte);
-    
-     cprintf("trap.c : tf->eip = %x, tf->eax = %x, pa2 = %x \n",tf->eip, tf->eax,PADDR(pa2));  
-
-    // TLB flush
-    //lcr3(PADDR(proc->pgdir));
-    
-    // lcr3(PADDR(proc->pgdir));
-    
-    // cprintf("trap.c : tf->eip = %x, tf->eax = %x, new pa = %x \n",tf->eip, tf->eax,PADDR(mem));  
-
-    //popcli();
-    //m = 2;
-
-    //lcr3(rcr3());
-
-    //cprintf("page fault proc->pid =%d, va =%x, almost done  \n", proc->pid, i );
-
-    //lapiceoi();
-
-    //    lcr3(rcr3());
+    popcli();
 
     break;
 
@@ -185,13 +177,13 @@ trap(struct trapframe *tf)
 
   // Check if the process has been killed since we yielded
   if(proc && proc->killed && (tf->cs&3) == DPL_USER) { 
-    cprintf(" exiting in trap pid = %d" , proc->pid ) ;
+    cprintf(" exiting in trap pid = %d" , proc->pid ) ;  
     exit();
   }
   
-  if ( tf->trapno == T_PGFLT ) { 
-    cprintf("end of trap \n");
+  /* if ( tf->trapno == T_PGFLT ) {  */
+  /*   cprintf("end of trap \n"); */
     
-  }
+  /* } */
 
 }
