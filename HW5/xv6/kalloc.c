@@ -67,4 +67,19 @@ kalloc()
   return (char*) r;
 }
 
+// Count the number of free physical pages.
+int
+sys_freepages()
+{
+  struct run *r;
+  int num = 0;
+
+  acquire(&kmem.lock);
+  for (r = kmem.freelist; r; r = r->next)
+    ++num;
+  release(&kmem.lock);
+
+  return num;
+}
+
 
