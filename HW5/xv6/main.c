@@ -22,7 +22,6 @@ main(void)
   consoleinit();   // I/O devices & their interrupts
   uartinit();      // serial port
   kinit();         // initialize memory allocator
-  initRefCounts(); // initialize physical page reference counters
   jkstack();       // call mainc() on a properly-allocated stack 
 }
 

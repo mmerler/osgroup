@@ -34,28 +34,21 @@ idtinit(void)
 void
 trap(struct trapframe *tf)
 {
+
+
   if(tf->trapno == T_SYSCALL){
     if(proc->killed)
       exit();
     proc->tf = tf;
-    
-
     syscall();
     if(proc->killed)
       exit();
     return;
   }
 
-  pte_t *pte;
+    pte_t *pte;
   uint pa, i;
   char *mem;
-  //  char *pa2;
-
- //uint r,m;
-
-  //pde_t *pde;
-  //  pte_t *pgtab;
-
 
   switch(tf->trapno){
   case T_IRQ0 + IRQ_TIMER:
@@ -85,47 +78,36 @@ trap(struct trapframe *tf)
             cpu->id, tf->cs, tf->eip);
     lapiceoi();
     break;
+   
   case T_PGFLT:      
 
-    
+      
+    if ( proc->killed ) exit(); 
 
-     pushcli(); 
-    
     proc->tf = tf;
 
-    //asm("\t movl %%cr2,%0" : "=r"(i));
     i = rcr2();
 
-    cprintf("page fault proc->pid =%d, va =%x, numfreepages = %d\n", proc->pid, i, sys_freepages() );
-   
+    
 
     if ( ! (pte = walkpgdir(proc->pgdir, (void *)i, 0)) ) 
       panic("page fault handler: pte should exist\n");
 
-    
+    //cprintf("trap.c : tf->eip = %x, tf->eax = %x, pa = %x \n",tf->eip, tf->eax,PADDR(pa));  
 
     //    if(!(pte = walkpgdir(proc->pgdir, (void *)i, 0)))
     //  panic("page fault handler: pte should exist\n");
 
     pa = PTE_ADDR(*pte);  
 
-
+    cprintf("page fault proc->pid =%d, va =%x, getRefCount(pa) =%x , pa = %x  \n", proc->pid, i, getRefCount(pa),pa );
     
-
-    //    cprintf("trap.c : tf->eip = %x, tf->eax = %x, pa = %x \n",tf->eip, tf->eax,PADDR(pa));  
-
-    // get rid of this 
-    //*pte = *pte | PTE_W;
-    //break; 
-    // get rid of this
-    
-    
-    if ( getRefCount(pa) == 0 ) 
-      {
-	*pte = *pte | PTE_W; 
-      } 
-    else 
-      {
+    /* if ( getRefCount(pa) == 0 ) */
+    /*   { */
+    /* 	*pte = *pte | PTE_W; */
+    /*   } */
+    /* else */
+    /*   { */
 	if(!(mem = kalloc()))
 	  panic("page fault handler : page fault\n");
 	memmove(mem, (char *)pa, PGSIZE);
@@ -136,14 +118,11 @@ trap(struct trapframe *tf)
 	  panic("page fault handler : page fault\n");
 
 	decRefCount(pa);
-	cprintf("getRefCount(pa) = %d \n" , getRefCount(pa));
-      }
+	//cprintf("getRefCount(pa) = %d, pa =%x  \n" , getRefCount(pa),pa);
+        // }
     
-    // switchuvm(proc);
 
-    lcr3(rcr3());
-
-    popcli();
+    if ( proc->killed ) exit();
 
     break;
 
@@ -165,25 +144,15 @@ trap(struct trapframe *tf)
   // Force process exit if it has been killed and is in user space.
   // (If it is still executing in the kernel, let it keep running 
   // until it gets to the regular system call return.)
-  if(proc && proc->killed && (tf->cs&3) == DPL_USER) { 
-    cprintf(" exiting in trap pid = %d" , proc->pid ) ;
+  if(proc && proc->killed && (tf->cs&3) == DPL_USER)
     exit();
-  }
+
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
-  if(proc && proc->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER)  { 
+  if(proc && proc->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER)
     yield();
-  }
 
   // Check if the process has been killed since we yielded
-  if(proc && proc->killed && (tf->cs&3) == DPL_USER) { 
-    cprintf(" exiting in trap pid = %d" , proc->pid ) ;  
+  if(proc && proc->killed && (tf->cs&3) == DPL_USER)
     exit();
-  }
-  
-  /* if ( tf->trapno == T_PGFLT ) {  */
-  /*   cprintf("end of trap \n"); */
-    
-  /* } */
-
 }

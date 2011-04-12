@@ -11,6 +11,12 @@ struct {
   struct proc proc[NPROC];
 } ptable;
 
+struct {
+  struct spinlock lock;
+  uint refCountList[4096]; // sysfile free pages is less than 4000 
+} refcounts;
+
+
 static struct proc *initproc;
 
 int nextpid = 1;
@@ -19,11 +25,93 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+
+
 void
 pinit(void)
 {
   initlock(&ptable.lock, "ptable");
 }
+
+void initRefCounts() 
+{
+   // Get the number of free pages 
+  //  int numFreePages = sys_freepages(); 
+
+    acquire(&refcounts.lock);
+  /* char* refCountPage = kalloc();  */
+  /* if ( !refCountPage ) panic("refCountPage allocation failed \n"); */
+
+  uint i = 0; 
+  for ( ; i < 4096 ; i++ ) 
+    {
+      refcounts.refCountList[i] = 0; 
+    } 
+
+  //refcounts.refCountList = refCountPage;
+  release(&refcounts.lock);
+
+  /* cprintf("number of free pages before = %d, after = %d ", numFreePages, sys_freepages() );   */
+  /* cprintf( " refcounts[1] = %d", refcounts.refCountList[1] );  */
+
+}
+
+void incRefCount(uint a) 
+{
+  acquire(&refcounts.lock);
+
+  extern char end[];
+  
+  char *p = (char*)PGROUNDUP((uint)end);
+ 
+
+  uint idx = ((uint)a/PGSIZE)-((uint)p/PGSIZE);
+
+  cprintf("inc refcounts.refCountList[i] =%x, a = %x \n",  refcounts.refCountList[idx], (uint)a/PGSIZE ); 
+
+  refcounts.refCountList[idx] = refcounts.refCountList[idx] + 1;  
+
+  cprintf("inc refcounts.refCountList[i] =%x, a = %x \n",  refcounts.refCountList[idx], (uint)a/PGSIZE ); 
+
+  release(&refcounts.lock);
+}
+
+void decRefCount(uint a) 
+{
+  acquire(&refcounts.lock);
+
+  extern char end[];
+  char *p = (char*)PGROUNDUP((uint)end);
+ 
+  uint idx = ((uint)a/PGSIZE)-((uint)p/PGSIZE);
+
+  refcounts.refCountList[idx] = refcounts.refCountList[idx] - 1;  
+
+  
+
+  release(&refcounts.lock);
+
+}
+
+uint getRefCount(uint a)
+{
+  acquire(&refcounts.lock);
+ 
+  extern char end[];
+  char *p = (char*)PGROUNDUP((uint)end);
+ 
+  uint idx = ((uint)a/PGSIZE)-((uint)p/PGSIZE);
+ 
+  uint count = (uint)refcounts.refCountList[idx]; 
+
+  release(&refcounts.lock);
+
+  return count;
+
+  
+}
+
+
 
 // Print a process listing to console.  For debugging.
 // Runs when user types ^P on console.
@@ -112,6 +200,11 @@ userinit(void)
 {
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
+
+  // initialize ref count 
+  initlock(&refcounts.lock, "refcount");
+  initRefCounts();
+
   
   p = allocproc();
   initproc = p;
@@ -140,7 +233,7 @@ int
 growproc(int n)
 {
 
-  cprintf("grow proc \n");
+  cprintf("growproc proc->pid = %d \n" , proc->pid );
   uint sz = proc->sz;
   if(n > 0){
     if(!(sz = allocuvm(proc->pgdir, sz, sz + n)))
@@ -160,7 +253,6 @@ growproc(int n)
 int
 fork(void)
 {
-
   int i, pid;
   struct proc *np;
 
@@ -179,7 +271,6 @@ fork(void)
   np->parent = proc;
   *np->tf = *proc->tf;
 
-
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 
@@ -192,8 +283,6 @@ fork(void)
   np->state = RUNNABLE;
   safestrcpy(np->name, proc->name, sizeof(proc->name));
 
-  cprintf("done with fork \n");
-
   lcr3(rcr3());
 
   return pid;
@@ -205,9 +294,6 @@ fork(void)
 void
 exit(void)
 {
-
-  cprintf("Exiting pid = %d", proc->pid);
-
   struct proc *p;
   int fd;
 
@@ -250,17 +336,11 @@ exit(void)
 int
 wait(void)
 {
-  
-  cprintf("wait called for pid = %d \n", proc->pid);
-
   struct proc *p;
   int havekids, pid;
 
   acquire(&ptable.lock);
   for(;;){
-    
-    cprintf("beginning of loop \n");
-
     // Scan through table looking for zombie children.
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
@@ -268,9 +348,7 @@ wait(void)
         continue;
       havekids = 1;
       if(p->state == ZOMBIE){
-        
-	cprintf("found a zombie proc->pid = %d, p->pid = %d \n", proc->pid, p->pid);
-	// Found one.
+        // Found one.
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
@@ -281,25 +359,18 @@ wait(void)
         p->name[0] = 0;
         p->killed = 0;
         release(&ptable.lock);
-	cprintf("returning proc->pid = %d \n", proc->pid);
-	
-	return pid;
+        return pid;
       }
     }
 
     // No point waiting if we don't have any children.
     if(!havekids || proc->killed){
-      cprintf("havekids = %d , proc->killed",havekids,proc->killed);
       release(&ptable.lock);
       return -1;
     }
 
-    cprintf("going to sleep pid = %d \n", proc->pid);
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
     sleep(proc, &ptable.lock);  //DOC: wait-sleep
-    
-    cprintf("after sleep pid = %d \n", proc->pid);
-  
   }
 }
 
@@ -389,9 +460,6 @@ forkret(void)
 void
 sleep(void *chan, struct spinlock *lk)
 {
-
-  
-
   if(proc == 0)
     panic("sleep");
 
@@ -409,30 +477,19 @@ sleep(void *chan, struct spinlock *lk)
     release(lk);
   }
 
-
-
   // Go to sleep.
   proc->chan = chan;
   proc->state = SLEEPING;
-  
-  
-  
   sched();
-
-  
 
   // Tidy up.
   proc->chan = 0;
-
-  
 
   // Reacquire original lock.
   if(lk != &ptable.lock){  //DOC: sleeplock2
     release(&ptable.lock);
     acquire(lk);
   }
-
-  
 }
 
 // Wake up all processes sleeping on chan.
@@ -462,9 +519,6 @@ wakeup(void *chan)
 int
 kill(int pid)
 {
-
-  cprintf("process killed proc->pid = %d \n",proc->pid);
-
   struct proc *p;
 
   acquire(&ptable.lock);
@@ -481,4 +535,3 @@ kill(int pid)
   release(&ptable.lock);
   return -1;
 }
-

@@ -1,4 +1,3 @@
-
 struct buf;
 struct context;
 struct file;
@@ -64,12 +63,6 @@ void            ioapicinit(void);
 char*           kalloc(void);
 void            kfree(char*);
 void            kinit();
-void            initRefCounts();
-void            incRefCount(uint a); 
-void            decRefCount(uint a); 
-uint            getRefCount(uint a);
-int             sys_freepages();
-
 
 // kbd.c
 void            kbdintr(void);
@@ -113,6 +106,11 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+void            initRefCounts();
+void            incRefCount(uint a); 
+void            decRefCount(uint a); 
+uint            getRefCount(uint a);
+
 
 // swtch.S
 void            swtch(struct context**, struct context*);
@@ -162,6 +160,7 @@ void            ksegment(void);
 void            kvmalloc(void);
 void            vmenable(void);
 pde_t*          setupkvm(void);
+pde_t*          copyandwriteuvm(pde_t*,uint);
 char*           uva2ka(pde_t*, char*);
 int             allocuvm(pde_t*, uint, uint);
 int             deallocuvm(pde_t*, uint, uint);
@@ -169,13 +168,10 @@ void            freevm(pde_t*);
 void            inituvm(pde_t*, char*, uint);
 int             loaduvm(pde_t*, char*, struct inode *, uint, uint);
 pde_t*          copyuvm(pde_t*,uint);
-pde_t*          copyandwriteuvm(pde_t*,uint);
 void            switchuvm(struct proc*);
 void            switchkvm();
 pte_t * walkpgdir(pde_t*, const void*, int );
-//pde_t*         walkpgdir();
-int             mappages(pde_t*, void*, uint , uint , int );
-
+int    mappages(pde_t*, void*, uint , uint , int );
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
