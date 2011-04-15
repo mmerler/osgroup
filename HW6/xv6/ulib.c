@@ -4,6 +4,13 @@
 #include "user.h"
 #include "x86.h"
 
+
+void*
+memcpy(void *dst, void *vsrc, int n)
+{
+  return memmove(dst, vsrc, n);
+}
+
 char*
 strcpy(char *s, char *t)
 {

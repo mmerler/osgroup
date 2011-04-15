@@ -22,6 +22,30 @@
 #include "file.h"
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
+
+
+// START HW6
+int ftag(int fd, char *key, char *buf, int len){
+
+  return(0);
+  
+}
+
+
+int funtag(int fd, char *key){
+  
+  return(0);
+}
+
+
+int gettag(int fd, char *key, char *buf, int len){
+  
+  return(0);
+}
+// END HW6
+
+
+
 static void itrunc(struct inode*);
 
 // Read the super block.

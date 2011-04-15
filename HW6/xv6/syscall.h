@@ -20,3 +20,7 @@
 #define SYS_sbrk   19
 #define SYS_sleep  20
 #define SYS_uptime 21
+// HW6
+#define SYS_ftag   22
+#define SYS_funtag 23
+#define SYS_gettag 24

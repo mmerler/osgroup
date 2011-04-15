@@ -22,8 +22,13 @@ int getpid();
 char* sbrk(int);
 int sleep(int);
 int uptime();
+// HW6
+int ftag(int , char *, char *, int);
+int funtag(int , char *);
+int gettag(int , char *, char *, int);
 
 // ulib.c
+void* memcpy(void *, void *, int);
 int stat(char*, struct stat*);
 char* strcpy(char*, char*);
 void *memmove(void*, void*, int);
