@@ -99,6 +99,10 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+//Added for HW6
+extern int sys_ftag(void);
+extern int sys_funtag(void);
+extern int sys_gettag(void);
 
 static int (*syscalls[])(void) = {
 [SYS_chdir]   sys_chdir,
@@ -122,6 +126,10 @@ static int (*syscalls[])(void) = {
 [SYS_wait]    sys_wait,
 [SYS_write]   sys_write,
 [SYS_uptime]  sys_uptime,
+//Added for HW6
+[SYS_ftag]    sys_ftag,
+[SYS_funtag]  sys_funtag,
+[SYS_gettag]  sys_gettag,
 };
 
 void

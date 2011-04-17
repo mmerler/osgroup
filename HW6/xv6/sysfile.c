@@ -389,3 +389,86 @@ sys_pipe(void)
   fd[1] = fd1;
   return 0;
 }
+
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//HW6
+
+int sys_ftag (void) //(int fd, char *key, char *buf, int len)
+{
+	int fd;
+  	struct file *f;
+	if(argfd(0, &fd, &f) < 0) 
+	{
+		return -1;
+	}
+
+	char *key;
+	if (argstr(1, &key) < 0) 
+	{
+		return -1;
+	}
+	
+	char *buf;
+	if (argstr(2, &buf) < 0) 
+	{
+		return -1;
+	}
+
+	int len;
+	if (argint(3, &len) < 0) 
+	{
+		return -1;
+	}
+
+	return ftag (fd, key, buf, len);
+}
+
+int sys_funtag(void) //(int fd, char *key)
+{
+	int fd;
+  	struct file *f;
+	if(argfd(0, &fd, &f) < 0) 
+	{
+		return -1;
+	}
+
+	char *key;
+	if (argstr(1, &key) < 0) 
+	{
+		return -1;
+	}
+
+  	return funtag (fd, key);
+}
+
+int sys_gettag(void) //(int fd, char *key, char *buf, int len)
+{
+	int fd;
+  	struct file *f;
+	if(argfd(0, &fd, &f) < 0) 
+	{
+		return -1;
+	}
+
+	char *key;
+	if (argstr(1, &key) < 0) 
+	{
+		return -1;
+	}
+	
+	char *buf;
+	if (argstr(2, &buf) < 0) 
+	{
+		return -1;
+	}
+
+	int len;
+	if (argint(3, &len) < 0) 
+	{
+		return -1;
+	}
+
+	return gettag (fd, key, buf, len);
+}
+
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
