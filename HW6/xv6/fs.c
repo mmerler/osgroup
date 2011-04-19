@@ -21,127 +21,7 @@
 #include "fs.h"
 #include "file.h"
 
-#include "fcntl.h" // added for HW6
-
 #define min(a, b) ((a) < (b) ? (a) : (b))
-
-
-// START HW6
-int ftag(int fd, char *key, char *buf, int len){
-
-  // check permission
-  if( ! proc->ofile[fd]->writable  ){
-     cprintf("Error, trying to write to a read only file!\n");
-	 return -1;
-  }
-  
-  // check appropriate size for buf
-  if( len <=0 || len > 512 ){
-	 cprintf("Error, %d is an invalid length for the value (should be between 1 and 512)!\n", len);
-	 return -1;
-  }
-  
-  // check appropriate size for key
-  if( strlen(key) >= 10 || strlen(key)<=0 ){
-	 cprintf("Error, %d is an invalid length for the key (should be between 1 and 10)!\n", strlen(key));
-	 return -1;
-  }
-  
-  // get inode
-  struct inode *dip = proc->ofile[fd]->ip;
-  
-  ilock(dip);
-  
-  writei(dip, key, 0, 10);
-  writei(dip, buf, 10, len);
-  
-  iunlock(dip);
-  
-  return(0);
-  
-}
-
-
-int funtag(int fd, char *key){
-
-  // check permission
-  if(  ! proc->ofile[fd]->writable ){
-     cprintf("Error, trying to write to a read only file!\n");
-	 return -1;
-  }
-  
-  // check appropriate size for key
-  if( strlen(key) >= 10 || strlen(key)<=0 ){
-	 cprintf("Error, %d is an invalid length for the key (should be between 1 and 10)!\n", strlen(key));
-	 return -1;
-  }
-  
-  
-  // acquire inode
-  struct inode *dip = proc->ofile[fd]->ip; 
-  
-  char tmp[512];
-  
-  ilock(dip);
-  
-  readi(dip, tmp, 0, 512);
-  
-  if( strncmp(tmp, key, 10)  ){ 
-      cprintf("Error, trying to remove inexistent key!\n");
-	  iunlock(dip);
-	  return(-1);
-  }
-	   
-  writei(dip, "", 0, 2);
-  
-  iunlock(dip);
-  
-  return(0);
-}
-
-
-int gettag(int fd, char *key, char *buf, int len){
-  
-  // check permission
-  if( ! proc->ofile[fd]->readable ){
-     cprintf("Error, trying to read from a write only file!\n");
-	 return -1;
-  }
-  
-  // check appropriate size for key
-  if( strlen(key) >= 10 || strlen(key)<=0 ){
-	 cprintf("Error, %d is an invalid length for the key (should be between 1 and 10)!\n", strlen(key));
-	 return -1;
-  }
-  
-  // get inode
-  struct inode *dip = proc->ofile[fd]->ip;
-  
-  char tmp[512];
-   
-  ilock(dip);
-   
-  // read key
-  readi(dip, tmp, 0, 512);
-    
-  if( !strncmp(tmp, key, 10)  ){ 
-      
-	 readi(dip, buf, 10, len);
-  
-     iunlock(dip);
-  
-  //  cprintf("found buf = %s\n", buf);
-  
-     return(strlen(buf)<len ? strlen(buf) : -1 );
-  }
-  else{
-   
-    iunlock(dip);
-    return(-1);
-  }
-  
-}
-// END HW6
 
 
 
@@ -734,3 +614,164 @@ nameiparent(char *path, char *name)
 {
   return namex(path, 1, name);
 }
+
+
+// START HW6
+int ftag(int fd, char *key, char *buf, int len){
+
+  // check permission
+  if( ! proc->ofile[fd]->writable  ){
+     cprintf("Error, trying to write to a read only file!\n");
+	 return -1;
+  }
+  
+  // check appropriate size for buf
+  if( len <=0 || len > 502 ){
+	 cprintf("Error, %d is an invalid length for the value (should be between 1 and 512)!\n", len);
+	 return -1;
+  }
+  
+  // check appropriate size for key
+  if( strlen(key) >= 10 || strlen(key)<1 ){
+	 cprintf("Error, %d is an invalid length for the key (should be between 1 and 10)!\n", strlen(key));
+	 return -1;
+  }
+  
+  // get inode
+  struct inode *dip = proc->ofile[fd]->ip;
+  
+  ilock(dip);
+  
+  //writei(dip, key, 0, 10);
+  //writei(dip, buf, 10, len);
+  
+  if( dip->tagAddr == 0 )
+     dip->tagAddr= balloc(dip->dev);
+  
+  
+  
+  struct buf *bp;
+  
+ 
+  bp = bread(dip->dev, dip->tagAddr);
+  
+  memmove(bp->data , key, 10);
+  memmove(bp->data +10, buf, len);
+  
+  bwrite(bp);
+  brelse(bp);
+  
+  
+  iunlock(dip);
+  
+  return(0);
+  
+}
+
+
+int funtag(int fd, char *key){
+
+  // check permission
+  if(  ! proc->ofile[fd]->writable ){
+     cprintf("Error, trying to write to a read only file!\n");
+	 return -1;
+  }
+  
+  // check appropriate size for key
+  if( strlen(key) >= 10 || strlen(key)< 1 ){
+	 cprintf("Error, %d is an invalid length for the key (should be between 1 and 10)!\n", strlen(key));
+	 return -1;
+  }
+  
+  
+  // acquire inode
+  struct inode *dip = proc->ofile[fd]->ip; 
+  
+  char tmp[512];
+  
+  ilock(dip);
+  
+  struct buf *bp;
+  bp = bread(dip->dev, dip->tagAddr);
+  
+ // readi(dip, tmp, 0, 512);
+  memmove(tmp,   bp->data, 512);
+  
+  if( strncmp(tmp, key, 10)  ){ 
+      cprintf("Error, trying to remove inexistent key!\n");
+	  iunlock(dip);
+	  return(-1);
+  }
+	   
+  //writei(dip, "", 0, 2);
+ // memmove((uint *)dip->tagAddr, "", 2);
+ 
+  
+  memmove(bp->data , "" , 2);
+  
+  bwrite(bp);
+  brelse(bp);
+  
+  iunlock(dip);
+  
+  return(0);
+}
+
+
+int gettag(int fd, char *key, char *buf, int len){
+  
+  // check permission
+  if( ! proc->ofile[fd]->readable ){
+     cprintf("Error, trying to read from a write only file!\n");
+	 return -1;
+  }
+  
+  // check appropriate size for key
+  if( strlen(key) >= 10 || strlen(key) < 1 ){
+	 cprintf("Error, %d is an invalid length for the key (should be between 1 and 10)!\n", strlen(key));
+	 return -1;
+  }
+  
+  // get inode
+  struct inode *dip = proc->ofile[fd]->ip;
+  
+  char tmp[512];
+   struct buf *bp;
+   
+  ilock(dip);
+   
+  // read key
+  bp = bread(dip->dev, dip->tagAddr);
+  
+  memmove(tmp, bp->data , 512);
+  
+  brelse(bp);
+  iunlock(dip);
+  
+  //bread(dip->dev, dip->tagAddr);
+  //memmove(tmp, (uint *)dip->tagAddr, 512);
+  
+  cprintf("current tag: %s\n",tmp);
+ 
+  //readi(dip, tmp, 0, 512);
+    
+  if( !strncmp(tmp, key, 10)  ){ 
+      
+	 // readi(dip, buf, 10, len);
+	 memmove(buf, tmp+10, min(len, 502));
+  
+     
+  
+  //  cprintf("found buf = %s\n", buf);
+  
+     return(strlen(buf)<len ? strlen(buf) : -1 );
+  }
+  else{
+   
+   // iunlock(dip);
+    return(-1);
+  }
+  
+}
+// END HW6
+

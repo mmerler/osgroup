@@ -23,6 +23,7 @@ struct inode {
   short nlink;
   uint size;
   uint addrs[NDIRECT+1];
+  uint tagAddr; // added for HW6
 };
 
 #define I_BUSY 0x1
