@@ -16,12 +16,22 @@ int main() {
   r = ftag(fd, "test1", "TEST!", strlen("TEST!") + 1);
   if (r < 0)
     panic("ftag() fail");
+	 
+  r = ftag(fd, "test2", "TEST2!", strlen("TEST2!") + 1);  // Mic
+  if (r < 0) // Mic
+    panic("ftag() fail"); // Mic
 
   r = gettag(fd, "test1", buf, 1024);
   if (r < 0)
     panic("gettag() fail");
   if (strcmp(buf, "TEST!") != 0)
     panic("gettag() wrong");
+	
+  r = gettag(fd, "test2", buf, 1024); // Mic
+  if (r < 0) // Mic
+    panic("gettag() fail"); // Mic
+  if (strcmp(buf, "TEST2!") != 0) // Mic
+    panic("gettag() wrong"); // Mic
 
   r = funtag(fd, "test1");
   if (r < 0)

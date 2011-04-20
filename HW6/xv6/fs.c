@@ -630,6 +630,63 @@ nameiparent(char *path, char *name)
 
 
 // START HW6
+// print current tags
+void printTag(uchar *str, int size){
+
+   cprintf("TAG : ");
+   int i;
+   for(i=0; i<size;i++)
+     cprintf("%c",str[i]);
+	 
+   cprintf("\n");	 
+  
+}
+
+// find position where to insert a new tag
+int findLastNULL( uchar *str, int size ){
+
+   int i = 0;
+   
+   for( i = 0; (str[i] || str[i+1]) && i < size-1 ; i++ )
+      ;
+      
+   return(i==0 ? i : i+1);	  
+}
+
+// find next key in tag page
+uchar *findNextKey(uchar * ptr){
+   
+   uchar *tmp = ptr;
+
+   while(*tmp != '\0'){
+      tmp++;
+	  
+   }
+	  
+   return( tmp != ptr ? tmp+1 : 0);	  
+}
+
+// find a specific key in tag list
+uchar *findKey( uchar* str, uchar *key, int size){
+ 
+  uchar *ptr = str;
+  int found = 0;
+ 
+  while( !found && ptr < str+size ){
+     found = !strncmp( (char *)ptr, (char *)key, 10);
+	
+  	 if(!found){
+    	 if( ! (ptr = findNextKey(ptr+10)) )
+			break;
+	 }
+		 
+  }
+  
+  return(found ? ptr : 0);
+}
+
+////////////////////////////////////////////////////////////////////
+// add a tag to a file
 int ftag(int fd, char *key, char *buf, int len){
 
   // check permission
@@ -654,30 +711,52 @@ int ftag(int fd, char *key, char *buf, int len){
   struct inode *dip = proc->ofile[fd]->ip;
   
   ilock(dip);
-   
-  
-  if( dip->tagAddr == 0 ){
-     
-	// bmap(struct inode *ip, uint bn)
+
+  if( dip->tagAddr == 0 )
      dip->tagAddr = balloc(dip->dev);
-	 
-	//  cprintf("allocating the block %x\n",dip->tagAddr);
-  }
-  
-  //writei(dip, key, 0, 10);
-  //writei(dip, buf, 10, len);
 
   struct buf *bp;
    
   bp = bread(dip->dev, dip->tagAddr);
+  
+ // printTag(bp->data, 512);
+  
+  int pos = findLastNULL( bp->data, 512);
 
-   
-  memmove(bp->data , key, 10);
-  memmove(bp->data +10, buf, len);
+  
+  if( pos > 512 - 10 - len){
+	cprintf("Error: not enough space to insert new key-value tag pair\n");
+	iunlock(dip);
+	return(-1);
+  }
+  
+  uchar *keyIn = findKey( bp->data, (uchar *)key, 512);
+  
+  if(keyIn){
+     
+	 uchar *tmpK = findNextKey(keyIn+10);
+	 
+	 if(tmpK){
+		int size = 512 - ( tmpK - bp->data )  ;
+		char tmpBuf[size];
+	 
+		memmove(tmpBuf, tmpK, size);
+		memmove(keyIn+10+len, tmpBuf, size);
+	 }
+	 
+	 memmove(keyIn+10, buf, len);
+		
+  }
+  else{
+
+     memmove(bp->data+pos , key, 10);
+     memmove(bp->data+pos +10, buf, min(len, 512-pos-10 ));
+  }
+
   
   bwrite(bp);
   
-  cprintf("ftag() setting bp to address %x in inode %d in dev %d, tagAddr %x\n", bp,dip->inum, dip->dev,dip->tagAddr);
+ //  printTag(bp->data, 512);
   
   brelse(bp);
   
@@ -689,7 +768,8 @@ int ftag(int fd, char *key, char *buf, int len){
   
 }
 
-
+////////////////////////////////////////////////////////////////////
+// remove a tag to from file
 int funtag(int fd, char *key){
 
   // check permission
@@ -708,31 +788,39 @@ int funtag(int fd, char *key){
   // acquire inode
   struct inode *dip = proc->ofile[fd]->ip; 
   
-  char tmp[512];
-  
   ilock(dip);
   
   struct buf *bp;
   bp = bread(dip->dev, dip->tagAddr);
+    
+  uchar *keyIn = findKey( bp->data, (uchar *)key, 512);
   
-  //readi(dip, tmp, 0, 512);
+  if( keyIn ){ 
   
-  memmove(tmp,   bp->data, 512);
-  
-  if( strncmp(tmp, key, 10)  ){ 
+     uchar *tmpK = findNextKey(keyIn+10);
+	 
+	 if(tmpK){
+	   
+	   int size =  512 - (tmpK- bp->data); 
+
+	   memmove(keyIn, tmpK, size);
+	   memmove(tmpK+size, "", 2);
+
+	 }
+	 else{
+	    memmove(keyIn, "", 2);
+	 }
+  }  
+  else{  
       cprintf("Error, trying to remove inexistent key!\n");
 	  iunlock(dip);
 	  return(-1);
   }
 	   
-  
  
-  
-  memmove(bp->data , "" , 2);
-  
   bwrite(bp);
   brelse(bp);
-  
+ 
   iupdate(dip);
   
   iunlock(dip);
@@ -740,7 +828,8 @@ int funtag(int fd, char *key){
   return(0);
 }
 
-
+////////////////////////////////////////////////////////////////////
+// read a tag of a file
 int gettag(int fd, char *key, char *buf, int len){
   
   // check permission
@@ -758,7 +847,7 @@ int gettag(int fd, char *key, char *buf, int len){
   // get inode
   struct inode *dip = proc->ofile[fd]->ip;
   
-  char tmp[512];
+  uchar tmp[512];
    struct buf *bp;
    
   ilock(dip);
@@ -766,33 +855,24 @@ int gettag(int fd, char *key, char *buf, int len){
   if( dip->tagAddr == 0 )
      dip->tagAddr = balloc(dip->dev);
 	    
-  // read key
+  // read tag
   bp = bread(dip->dev, dip->tagAddr);
-  
-  cprintf("gettag() Reading bp from address %x  in inode %d in dev %d, tagaddr %x\n", bp,dip->inum, dip->dev,dip->tagAddr);
   
   memmove(tmp, bp->data , 512);
   
   brelse(bp);
- iunlock(dip);
-  
-  //bread(dip->dev, dip->tagAddr);
-  //memmove(tmp, (uint *)dip->tagAddr, 512);
+  iunlock(dip);
 
-  cprintf("current tag: %s\n",tmp);
+  uchar *keyIn = findKey(tmp, (uchar *)key, 512);
     
-  if( !strncmp(tmp, key, 10)  ){ 
-      
-	 // readi(dip, buf, 10, min(len, 502));
-	 memmove(buf, tmp+10, min(len, 502));
-
-	 //  cprintf("found buf = %s\n", buf);
-  
+  if( keyIn ){  
+     	 
+	 memmove(buf, keyIn+10, min(len, 512-(keyIn-tmp)));
+	 
      return(strlen(buf)<len ? strlen(buf) : -1 );
   }
   else{
-   
-  //  iunlock(dip);
+    cprintf("Key not found!\n");
     return(-1);
   }
   
